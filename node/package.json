@@ -1,0 +1,48 @@
+{
+  "name": "actiongate-node",
+  "version": "0.1.0",
+  "description": "Deterministic admission control engine for state-changing operations in automated and agentic systems.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/actiongate.git"
+  },
+  "keywords": [
+    "policy",
+    "admission-control",
+    "governance",
+    "agentic",
+    "automation",
+    "actiongate"
+  ],
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "actiongate.node"
+  ],
+  "napi": {
+    "binaryName": "actiongate",
+    "targets": [
+      "x86_64-pc-windows-msvc",
+      "x86_64-apple-darwin",
+      "aarch64-apple-darwin",
+      "x86_64-unknown-linux-gnu"
+    ]
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
+    "prepublishOnly": "napi prepublish -t npm"
+  },
+  "devDependencies": {
+    "@napi-rs/cli": "^3.2.0"
+  }
+}

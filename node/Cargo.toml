@@ -1,0 +1,17 @@
+[package]
+name = "actiongate-node"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+actiongate-core = { path = "../core" }
+napi = "3"
+napi-derive = "3"
+serde_yaml = "0.9"
+
+[build-dependencies]
+napi-build = "2"

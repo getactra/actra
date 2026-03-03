@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "core",
+    "python",
+    "node"
+]
+
+resolver = "2"
