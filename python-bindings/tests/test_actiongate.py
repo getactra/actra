@@ -2,7 +2,7 @@ from actiongate import PyActionGate
 
 
 # -----------------------------
-# 1️⃣ Define Schema
+# 1. Define Schema
 # -----------------------------
 schema_yaml = """
 version: 1
@@ -26,7 +26,7 @@ snapshot:
 
 
 # -----------------------------
-# 2️⃣ Define Policy
+# 2. Define Policy
 # -----------------------------
 policy_yaml = """
 version: 1
@@ -59,7 +59,7 @@ rules:
 
 
 # -----------------------------
-# 3️⃣ Initialize Engine
+# 3. Initialize Engine
 # -----------------------------
 gate = PyActionGate(schema_yaml, policy_yaml)
 
@@ -68,7 +68,7 @@ print("-" * 60)
 
 
 # -----------------------------
-# 4️⃣ Case 1 — Fraud Flag True
+# 4. Case 1 — Fraud Flag True
 # -----------------------------
 result1 = gate.evaluate({
     "action": {"type": "refund", "amount": 200},
@@ -85,7 +85,7 @@ print("-" * 60)
 
 
 # -----------------------------
-# 5️⃣ Case 2 — Large Refund
+# 5. Case 2 — Large Refund
 # -----------------------------
 result2 = gate.evaluate({
     "action": {"type": "refund", "amount": 1500},
@@ -102,7 +102,7 @@ print("-" * 60)
 
 
 # -----------------------------
-# 6️⃣ Case 3 — Allowed
+# 6. Case 3 — Allowed
 # -----------------------------
 result3 = gate.evaluate({
     "action": {"type": "refund", "amount": 200},
