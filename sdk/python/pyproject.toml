@@ -1,0 +1,44 @@
+[build-system]
+requires = ["maturin>=1.4,<2"]
+build-backend = "maturin"
+
+[project]
+name = "actiongate-py"
+description = "Deterministic admission control engine for automated systems."
+dynamic = ["version"]
+authors = [{name = "Amit Saxena"}]
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "Apache-2.0"}
+
+keywords = [
+  "policy",
+  "authorization",
+  "policy-engine",
+  "automation",
+  "admission-control"
+]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Rust",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Topic :: Software Development :: Libraries",
+  "Topic :: Security"
+]
+
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/actiongatehq/actiongate"
+Repository = "https://github.com/actiongatehq/actiongate"
+Documentation = "https://github.com/actiongatehq/actiongate"
+
+[tool.maturin]
+manifest-path = "../../bindings/python/Cargo.toml"
+module-name = "actiongate._actiongate_core"
+python-source = "."

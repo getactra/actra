@@ -1,4 +1,4 @@
-from actiongate import PyActionGate
+from _actiongate_core import PyActionGate
 
 
 # -----------------------------

@@ -1,8 +1,39 @@
 [workspace]
 members = [
     "core",
-    "python",
-    "node"
+    "bindings/python",
+    "bindings/node"
 ]
 
 resolver = "2"
+
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+license = "Apache-2.0"
+authors = ["Amit Saxena"]
+repository = "https://github.com/actiongatehq/actiongate"
+description = "Deterministic admission control engine for state-changing operations in automated systems."
+keywords = [
+    "policy",
+    "authorization",
+    "policy-engine",
+    "agent",
+    "deterministic"
+]
+categories = [
+    "config",
+    "api-bindings",
+    "development-tools",
+]
+readme = "README.md"
+exclude = [
+    ".github/*",
+]
+
+[profile.release]
+lto = true
+codegen-units = 1
+opt-level = "z"
+strip = true
+panic = "abort"

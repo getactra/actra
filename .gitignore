@@ -24,3 +24,6 @@ node_modules
 .venv
 *.node
 package-lock.json
+*.so
+__pycache__/
+*.py[cod]

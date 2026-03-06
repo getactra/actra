@@ -115,7 +115,7 @@ impl PyActionGate {
 /// Must match the compiled library name to satisfy Python's
 /// `PyInit_<module>` symbol requirements.
 #[pymodule]
-fn actiongate(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn _actiongate_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyActionGate>()?;
     Ok(())
 }

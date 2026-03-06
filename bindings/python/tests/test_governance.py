@@ -1,4 +1,4 @@
-from actiongate import PyActionGate
+from _actiongate_core import PyActionGate
 
 # Test 1 — Without Governance
 # This should compile and evaluate normally.
