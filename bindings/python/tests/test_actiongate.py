@@ -63,9 +63,11 @@ rules:
 # -----------------------------
 gate = PyActionGate(schema_yaml, policy_yaml)
 
-print("Policy Hash:", gate.policy_hash())
+hash = gate.policy_hash()
+print("Policy Hash:", hash )
 print("-" * 60)
-
+assert hash is not None
+print("Pass: Policy Hash works" )
 
 # -----------------------------
 # 4. Case 1 — Fraud Flag True
@@ -82,7 +84,9 @@ result1 = gate.evaluate({
 print("Case 1 (fraud=True):")
 print(result1)
 print("-" * 60)
-
+# Assert that the 'effect' key has the value 'block'
+assert result1['effect'] == 'block'
+print("Pass: Case 1 (fraud=True) works")
 
 # -----------------------------
 # 5. Case 2 — Large Refund
@@ -99,6 +103,9 @@ result2 = gate.evaluate({
 print("Case 2 (amount > 1000):")
 print(result2)
 print("-" * 60)
+# Assert that the 'effect' key has the value 'block'
+assert result2['effect'] == 'block'
+print("Pass: Case 2 (amount > 1000) works")
 
 
 # -----------------------------
@@ -116,3 +123,6 @@ result3 = gate.evaluate({
 print("Case 3 (normal refund):")
 print(result3)
 print("-" * 60)
+# Assert that the 'effect' key has the value 'allow'
+assert result3['effect'] == 'allow'
+print("Pass: Case 3 (normal refund) works")

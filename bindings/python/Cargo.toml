@@ -3,6 +3,10 @@ name = "actiongate-python"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description.workspace = true
+publish = false
 
 [lib]
 name = "_actiongate_core"
@@ -10,5 +14,5 @@ crate-type = ["cdylib"]
 
 [dependencies]
 actiongate-core = { path = "../../core" }
-pyo3 = { version = "0.21", features = ["extension-module", "abi3-py39"] }
+pyo3 = { version = "0.21", features = ["extension-module", "abi3-py39", "generate-import-lib"] }
 serde_yaml = "0.9"

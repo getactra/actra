@@ -63,10 +63,7 @@ version: 1
 governance:
   rules:
     - id: no_global_block
-
-      applies_to:
-        actions: ["refund"]   # optional
-
+    
       select:
         where:
           effect: block
@@ -104,10 +101,14 @@ try:
         policy_with_block,
         governance_yaml
     )
-    print("ERROR: Governance violation not detected")
+    raise AssertionError("Governance violation should have been prevented, but no exception occurred.")
 except Exception as e:
-    print("PASS: Governance prevented compilation")
-    print("Error:", str(e))
+    if isinstance(e,ValueError):  
+      print("PASS: Governance prevented compilation")
+      print("Exception Returned:", str(e))
+    else:
+      print("ERROR: Governance violation not detected")
+      raise
 
 # Test 3 — Governance Present But Valid Policy
 # Now use governance, but policy does not violate it.

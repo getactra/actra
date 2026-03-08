@@ -152,12 +152,12 @@ fn extract_map(
         for (key, value) in dict.iter() {
             let key_str: String = key.extract::<String>()?;
 
-            let scalar = if let Ok(v) = value.extract::<String>() {
-                ScalarValue::String(v)
+            let scalar = if let Ok(v) = value.extract::<bool>() {
+                ScalarValue::Boolean(v)
             } else if let Ok(v) = value.extract::<f64>() {
                 ScalarValue::Number(v)
-            } else if let Ok(v) = value.extract::<bool>() {
-                ScalarValue::Boolean(v)
+            } else if let Ok(v) = value.extract::<String>() {
+                ScalarValue::String(v)
             } else {
                 return Err(pyo3::exceptions::PyTypeError::new_err(
                     "Unsupported value type",

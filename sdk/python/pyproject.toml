@@ -42,3 +42,6 @@ Documentation = "https://github.com/actiongatehq/actiongate"
 manifest-path = "../../bindings/python/Cargo.toml"
 module-name = "actiongate._actiongate_core"
 python-source = "."
+bindings = "pyo3"
+strip = true
+compatibility = "manylinux2014"
