@@ -25,12 +25,6 @@ jobs:
         with:
           targets: x86_64-apple-darwin,aarch64-apple-darwin
 
-      #- name: Install Rust target for Apple Silicon
-      #  if: runner.os == 'macOS'
-      #  run: |
-      #    rustup target add x86_64-apple-darwin
-      #    rustup target add aarch64-apple-darwin
-
       - name: Install LLVM for Apple Silicon cross-compilation
         if: runner.os == 'macOS'
         run: |
@@ -66,13 +60,12 @@ jobs:
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_BUILD_VERBOSITY: 2
-          CIBW_SKIP: "pp* *-musllinux_i686"
+          CIBW_SKIP: "*-musllinux_i686"
           CIBW_ARCHS_MACOS: "universal2"
           CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=10.12"
-          CIBW_TEST_COMMAND: "python -c 'import actra; print(\"actra imported from:\", actra.__file__)'"
+          CIBW_TEST_COMMAND: python -c "import actra; print('actra imported from:', actra.__file__)"
           MATURIN_BUILD_ARGS: "--release --strip"
           CIBW_ENVIRONMENT: "PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1"
-          CIBW_MANYLINUX_X86_64_IMAGE: ghcr.io/pyo3/maturin
         run: cibuildwheel sdk/python --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
