@@ -27,7 +27,7 @@ package-lock.json
 *.so
 __pycache__/
 *.py[cod]
-lib_actiongate_core.dylib.dSYM/
+lib_actra_core.dylib.dSYM/
 .pytest_cache/
 venv_test
 wheelhouse

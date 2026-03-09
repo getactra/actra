@@ -1,8 +1,8 @@
-# ActionGate Python SDK
+# Actra Python SDK
 
 Deterministic admission control for state-changing operations in automated and agentic systems.
 
-The **ActionGate Python SDK** provides a simple interface for loading policies and evaluating decisions using the ActionGate engine written in Rust.
+The **Actra Python SDK** provides a simple interface for loading policies and evaluating decisions using the Actra engine written in Rust.
 
 ---
 
@@ -11,7 +11,7 @@ The **ActionGate Python SDK** provides a simple interface for loading policies a
 Install from PyPI:
 
 ```bash
-pip install actiongate-py
+pip install actra
 ```
 
 The package includes a compiled Rust engine, so no Rust toolchain is required during installation.
@@ -21,9 +21,9 @@ The package includes a compiled Rust engine, so no Rust toolchain is required du
 ## Quick Start
 
 ```python
-import actiongate
+import actra
 
-policy = actiongate.load_policy_from_file(
+policy = actra.load_policy_from_file(
     "schema.yaml",
     "policy.yaml"
 )
@@ -44,9 +44,9 @@ print(decision)
 ### From Files
 
 ```python
-import actiongate
+import actra
 
-policy = actiongate.load_policy_from_file(
+policy = actra.load_policy_from_file(
     "schema.yaml",
     "policy.yaml"
 )
@@ -55,7 +55,7 @@ policy = actiongate.load_policy_from_file(
 Optional governance configuration can also be provided:
 
 ```python
-policy = actiongate.load_policy_from_file(
+policy = actra.load_policy_from_file(
     "schema.yaml",
     "policy.yaml",
     "governance.yaml"
@@ -69,7 +69,7 @@ policy = actiongate.load_policy_from_file(
 Useful for tests or dynamic environments.
 
 ```python
-policy = actiongate.load_policy_from_string(
+policy = actra.load_policy_from_string(
     schema_yaml,
     policy_yaml
 )
@@ -119,9 +119,9 @@ This is useful for:
 Retrieve the underlying compiler version:
 
 ```python
-import actiongate
+import actra
 
-actiongate.ActionGate.compiler_version()
+actra.Actra.compiler_version()
 ```
 
 ---
@@ -129,9 +129,9 @@ actiongate.ActionGate.compiler_version()
 ## Example
 
 ```python
-import actiongate
+import actra
 
-policy = actiongate.load_policy_from_file(
+policy = actra.load_policy_from_file(
     "schema.yaml",
     "policy.yaml"
 )
@@ -175,11 +175,11 @@ flowchart LR
     end
 
     subgraph Native Bindings
-        N[Rust bindings<br/>_actiongate_core]
+        N[Rust bindings<br/>actra]
     end
 
     subgraph Core Engine
-        C[ActionGate Engine]
+        C[Actra Engine]
     end
 
     U --> S --> N --> C
@@ -197,4 +197,4 @@ Apache License 2.0
 
 ## Project
 
-ActionGate is designed for systems requiring explicit, reproducible control over state-changing operations in automated environments.
+Actra is designed for systems requiring explicit, reproducible control over state-changing operations in automated environments.

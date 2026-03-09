@@ -1,4 +1,4 @@
-import actiongate
+import actra
 
 # Test 1 — Without Governance
 # This should compile and evaluate normally.
@@ -39,7 +39,7 @@ rules:
 
 print("=== Test: Without Governance ===")
 
-policy = actiongate.load_policy_from_string(schema_yaml, policy_yaml)
+policy = actra.load_policy_from_string(schema_yaml, policy_yaml)
 
 result = policy.evaluate({
     "action": {"amount": 500},
@@ -96,7 +96,7 @@ rules:
 print("\n=== Test: With Governance (Should Fail) ===")
 
 try:
-    policy = actiongate.load_policy_from_string(
+    policy = actra.load_policy_from_string(
         schema_yaml,
         policy_with_block,
         governance_yaml
@@ -132,7 +132,7 @@ rules:
     effect: allow
 """
 
-policy = actiongate.load_policy_from_string(
+policy = actra.load_policy_from_string(
     schema_yaml,
     valid_policy,
     governance_yaml

@@ -1,4 +1,4 @@
-const { ActionGate } = require('./index')
+const { Actra } = require('./index')
 
 const schema = `
 version: 1
@@ -31,9 +31,9 @@ rules:
     effect: block
 `
 
-const gate = new ActionGate(schema, policy)
+const actra = new Actra(schema, policy)
 
-const result = gate.evaluate({
+const result = actra.evaluate({
   action: { type: "delete" },
   actor: { role: "admin" },
   snapshot: {}

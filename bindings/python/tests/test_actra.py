@@ -1,4 +1,4 @@
-from _actiongate_core import PyActionGate
+from actra import PyActra
 
 
 # -----------------------------
@@ -61,9 +61,9 @@ rules:
 # -----------------------------
 # 3. Initialize Engine
 # -----------------------------
-gate = PyActionGate(schema_yaml, policy_yaml)
+actra = PyActra(schema_yaml, policy_yaml)
 
-hash = gate.policy_hash()
+hash = actra.policy_hash()
 print("Policy Hash:", hash )
 print("-" * 60)
 assert hash is not None
@@ -72,7 +72,7 @@ print("Pass: Policy Hash works" )
 # -----------------------------
 # 4. Case 1 — Fraud Flag True
 # -----------------------------
-result1 = gate.evaluate({
+result1 = actra.evaluate({
     "action": {"type": "refund", "amount": 200},
     "actor": {"id": "agent_1", "role": "support"},
     "snapshot": {
@@ -91,7 +91,7 @@ print("Pass: Case 1 (fraud=True) works")
 # -----------------------------
 # 5. Case 2 — Large Refund
 # -----------------------------
-result2 = gate.evaluate({
+result2 = actra.evaluate({
     "action": {"type": "refund", "amount": 1500},
     "actor": {"id": "agent_1", "role": "support"},
     "snapshot": {
@@ -111,7 +111,7 @@ print("Pass: Case 2 (amount > 1000) works")
 # -----------------------------
 # 6. Case 3 — Allowed
 # -----------------------------
-result3 = gate.evaluate({
+result3 = actra.evaluate({
     "action": {"type": "refund", "amount": 200},
     "actor": {"id": "agent_1", "role": "support"},
     "snapshot": {

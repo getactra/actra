@@ -1,7 +1,7 @@
-import actiongate
+import actra
 
 try:
-    actiongate.load_policy_from_file("missing.yaml", "policy.yaml")
+    actra.load_policy_from_file("missing.yaml", "policy.yaml")
     raise AssertionError("Execption not raised")
 except Exception as e:
     if isinstance(e, FileNotFoundError):

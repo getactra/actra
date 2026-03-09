@@ -1,4 +1,4 @@
-//! Python bindings for ActionGate.
+//! Python bindings for Actra.
 //!
 //! This module exposes a thin wrapper around the core engine.
 //!
@@ -15,29 +15,29 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyModule};
 use pyo3::Bound;
 
-use actiongate_core::ast::PolicyAst;
-use actiongate_core::compiler::{compile_policy, compile_with_governance};
-use actiongate_core::compiler_version;
-use actiongate_core::engine::{evaluate, EvaluationInput};
-use actiongate_core::governance::GovernanceAst;
-use actiongate_core::ir::CompiledPolicy;
-use actiongate_core::ir::Effect;
-use actiongate_core::ir::ScalarValue;
-use actiongate_core::schema::{Schema, SchemaAst};
+use actra_core::ast::PolicyAst;
+use actra_core::compiler::{compile_policy, compile_with_governance};
+use actra_core::compiler_version;
+use actra_core::engine::{evaluate, EvaluationInput};
+use actra_core::governance::GovernanceAst;
+use actra_core::ir::CompiledPolicy;
+use actra_core::ir::Effect;
+use actra_core::ir::ScalarValue;
+use actra_core::schema::{Schema, SchemaAst};
 
-/// Python-exposed ActionGate class.
+/// Python-exposed Actra class.
 ///
 /// This is a thin wrapper around `CompiledPolicy`.
 /// Compilation occurs during initialization.
 /// Evaluation is deterministic and stateless.
 #[pyclass]
-pub struct PyActionGate {
+pub struct PyActra {
     compiled_policy: CompiledPolicy,
 }
 
 #[pymethods]
-impl PyActionGate {
-    /// Creates a new ActionGate instance.
+impl PyActra {
+    /// Creates a new Actra instance.
     ///
     /// Arguments:
     /// - `schema_yaml`: YAML schema definition
@@ -115,8 +115,8 @@ impl PyActionGate {
 /// Must match the compiled library name to satisfy Python's
 /// `PyInit_<module>` symbol requirements.
 #[pymodule]
-fn _actiongate_core(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
-    m.add_class::<PyActionGate>()?;
+fn actra(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_class::<PyActra>()?;
     Ok(())
 }
 
