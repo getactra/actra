@@ -97,7 +97,6 @@ jobs:
 
   build_sdist:
     name: Build source distribution
-    needs: build_wheels
     runs-on: ubuntu-latest
 
     steps:
@@ -109,21 +108,21 @@ jobs:
         with:
           python-version: "3.11"
 
-      - run: pip install maturin
+      - run: pip install --upgrade pip maturin
 
       - name: Build sdist
-        run: maturin sdist -m bindings/python/Cargo.toml
+        run: maturin sdist -m sdk/python/Cargo.toml --compatibility manylinux_2_28
 
       - uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: target/wheels/*.tar.gz
 
-      - name: Test wheel install
+      - name: Test sdist install
         run: |
-          pip install wheelhouse/*.whl
-          python -c "import actra"
-
+          pip install target/wheels/*.tar.gz
+          python -c "import actra; print('actra imported from:', actra.__file__)"
+          
  # publish_test:
  #   if: github.ref_type == 'branch'
  #   needs: [build_wheels, build_sdist]
