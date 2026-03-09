@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use actiongate_core::ast::PolicyAst;
-use actiongate_core::compiler::compile_policy;
-use actiongate_core::engine::{evaluate, EvaluationInput};
-use actiongate_core::ir::{Effect, ScalarValue};
-use actiongate_core::schema::{SchemaAst, Schema};
+use actra::ast::PolicyAst;
+use actra::compiler::compile_policy;
+use actra::engine::{evaluate, EvaluationInput};
+use actra::ir::{Effect, ScalarValue};
+use actra::schema::{SchemaAst, Schema};
 
 #[test]
 fn block_when_fraud_flag_true() {

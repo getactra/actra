@@ -1,2 +1,2 @@
-from actiongate import PyActionGate
-print(PyActionGate.compiler_version())
+from actra import PyActra
+print(PyActra.compiler_version())

@@ -1,4 +1,4 @@
-use actiongate_core::schema::{SchemaAst, Schema};
+use actra::schema::{SchemaAst, Schema};
 
 
 #[test]

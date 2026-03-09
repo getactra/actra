@@ -1,5 +1,5 @@
 [package]
-name = "actiongate-node"
+name = "actra-node"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
@@ -8,7 +8,7 @@ license = "Apache-2.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-actiongate-core = { path = "../core" }
+actra = { path = "../core" }
 napi = "3"
 napi-derive = "3"
 serde_yaml = "0.9"

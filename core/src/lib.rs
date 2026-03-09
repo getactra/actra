@@ -1,8 +1,8 @@
-//! # ActionGate
+//! # Actra
 //!
 //! Deterministic admission control engine for production mutations.
 //!
-//! ActionGate compiles declarative policy definitions into a validated,
+//! Actra compiles declarative policy definitions into a validated,
 //! immutable intermediate representation (IR) that can be evaluated
 //! efficiently against runtime inputs.
 //!

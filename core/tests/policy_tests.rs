@@ -1,4 +1,4 @@
-use actiongate_core::ast::PolicyAst;
+use actra::ast::PolicyAst;
 
 #[test]
 fn parse_simple_policy() {

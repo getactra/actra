@@ -1,4 +1,4 @@
-from actiongate import PyActionGate
+from actra import PyActra
 
 # Test 1 — Without Governance
 # This should compile and evaluate normally.
@@ -39,7 +39,7 @@ rules:
 
 print("=== Test: Without Governance ===")
 
-gate = PyActionGate(schema_yaml, policy_yaml)
+gate = PyActra(schema_yaml, policy_yaml)
 
 result = gate.evaluate({
     "action": {"amount": 500},
@@ -99,7 +99,7 @@ rules:
 print("\n=== Test: With Governance (Should Fail) ===")
 
 try:
-    gate = PyActionGate(
+    gate = PyActra(
         schema_yaml,
         policy_with_block,
         governance_yaml
@@ -131,7 +131,7 @@ rules:
     effect: allow
 """
 
-gate = PyActionGate(
+gate = PyActra(
     schema_yaml,
     valid_policy,
     governance_yaml

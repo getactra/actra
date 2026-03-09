@@ -1,14 +1,14 @@
 [package]
-name = "actiongate-python"
+name = "actra-python"
 version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 
 [lib]
-name = "actiongate"
+name = "actra"
 crate-type = ["cdylib"]
 
 [dependencies]
-actiongate-core = { path = "../core" }
+actra-core = { package = "actra", path = "../core" }
 pyo3 = { version = "0.21", features = ["extension-module"] }
 serde_yaml = "0.9"

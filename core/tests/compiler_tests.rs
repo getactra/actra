@@ -1,6 +1,6 @@
-use actiongate_core::ast::PolicyAst;
-use actiongate_core::compiler::compile_policy;
-use actiongate_core::schema::{SchemaAst, Schema};
+use actra::ast::PolicyAst;
+use actra::compiler::compile_policy;
+use actra::schema::{SchemaAst, Schema};
 
 #[test]
 fn compile_simple_policy() {
