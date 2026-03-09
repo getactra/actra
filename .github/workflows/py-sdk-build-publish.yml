@@ -69,6 +69,7 @@ jobs:
 
   build_sdist:
     name: Build source distribution
+    needs: build_wheels
     runs-on: ubuntu-latest
 
     steps:
