@@ -22,8 +22,17 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-apple-darwin,aarch64-apple-darwin
+
+      - name: Add macOS cross compilation targets
+        if: runner.os == 'macOS'
+        run: |
+          rustup target add x86_64-apple-darwin
+          rustup target add aarch64-apple-darwin
+
+    #  - name: Install Rust
+    #    uses: dtolnay/rust-toolchain@stable
+    #    with:
+    #      targets: x86_64-apple-darwin,aarch64-apple-darwin
 
       - name: Install LLVM for Apple Silicon cross-compilation
         if: runner.os == 'macOS'
@@ -44,8 +53,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install maturin cibuildwheel
 
-      - uses: dtolnay/rust-toolchain@stable
-        if: runner.os == 'Windows'
+   #   - uses: dtolnay/rust-toolchain@stable
+   #     if: runner.os == 'Windows'
 
       - name: Add Cargo to PATH
         if: runner.os == 'Windows'
@@ -66,6 +75,11 @@ jobs:
           CIBW_TEST_COMMAND: python -c "import actra; print('actra imported from:', actra.__file__)"
           MATURIN_BUILD_ARGS: "--release --strip"
           CIBW_ENVIRONMENT: "PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1"
+          CIBW_BEFORE_ALL_LINUX: |
+              curl https://sh.rustup.rs -sSf | sh -s -- -y
+              export PATH="$HOME/.cargo/bin:$PATH"
+              rustc --version
+
         run: cibuildwheel sdk/python --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
