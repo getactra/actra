@@ -50,15 +50,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install maturin cibuildwheel
 
+      - uses: dtolnay/rust-toolchain@stable
+        if: runner.os == 'Windows'
+
+      - name: Add Cargo to PATH
+        if: runner.os == 'Windows'
+        run: |
+          echo "%USERPROFILE%\.cargo\bin" >> $GITHUB_PATH
+
+      - name: Check Rust target on Windows
+        if: runner.os == 'Windows'
+        run: rustup target list --installed
+
       - name: Build wheels
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_BUILD_VERBOSITY: 2
           CIBW_SKIP: "pp* *-musllinux_i686"
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ARCHS_MACOS: "universal2"
+          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=10.12"
           CIBW_TEST_COMMAND: "python -c 'import actra; print(\"actra imported from:\", actra.__file__)'"
           MATURIN_BUILD_ARGS: "--release --strip"
           CIBW_ENVIRONMENT: "PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1"
+          CIBW_MANYLINUX_X86_64_IMAGE: ghcr.io/pyo3/maturin
         run: cibuildwheel sdk/python --output-dir wheelhouse
 
       - uses: actions/upload-artifact@v4
@@ -96,7 +110,7 @@ jobs:
           pip install wheelhouse/*.whl
           python -c "import actra"
 
-  publish-test:
+  publish_test:
     if: github.ref_type == 'branch'
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
@@ -105,6 +119,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: dist
+          merge-multiple: true
 
       - name: Publish to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
@@ -113,19 +128,20 @@ jobs:
           password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
 
-  publish:
-    name: Publish to PyPI
-    if: github.ref_type == 'tag'
-    needs: [build_wheels, build_sdist]
-    runs-on: ubuntu-latest
+ # publish:
+ #   name: Publish to PyPI
+ #   if: github.ref_type == 'tag'
+ #  needs: [build_wheels, build_sdist]
+ #   runs-on: ubuntu-latest
 
-    permissions:
-      id-token: write
+ #   permissions:
+ #     id-token: write
 
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
+  #  steps:
+  #    - uses: actions/download-artifact@v4
+  #      with:
+  #        path: dist
+  #        merge-multiple: true
 
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@release/v1
+  #    - name: Publish package
+  #      uses: pypa/gh-action-pypi-publish@release/v1
