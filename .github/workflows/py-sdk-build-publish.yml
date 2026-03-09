@@ -111,7 +111,7 @@ jobs:
       - run: pip install --upgrade pip maturin
 
       - name: Build sdist
-        run: maturin sdist -m sdk/python/Cargo.toml --compatibility manylinux_2_28
+        run: maturin sdist -m sdk/python/Cargo.toml
 
       - uses: actions/upload-artifact@v4
         with:
@@ -122,7 +122,7 @@ jobs:
         run: |
           pip install target/wheels/*.tar.gz
           python -c "import actra; print('actra imported from:', actra.__file__)"
-          
+
  # publish_test:
  #   if: github.ref_type == 'branch'
  #   needs: [build_wheels, build_sdist]
