@@ -111,7 +111,9 @@ jobs:
       - run: pip install --upgrade pip maturin
 
       - name: Build sdist
-        run: maturin sdist -m sdk/python/Cargo.toml
+        run: |
+          cd sdk/python
+          maturin sdist
 
       - uses: actions/upload-artifact@v4
         with:
