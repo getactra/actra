@@ -1,5 +1,5 @@
 [package]
-name = "actiongate-node"
+name = "actra-node"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -9,7 +9,7 @@ publish = false
 crate-type = ["cdylib"]
 
 [dependencies]
-actiongate-core = { path = "../../core" }
+actra = { path = "../../core" }
 napi = "3"
 napi-derive = "3"
 serde_yaml = "0.9"

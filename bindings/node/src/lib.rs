@@ -1,4 +1,4 @@
-//! Node.js (N-API) bindings for ActionGate.
+//! Node.js (N-API) bindings for Actra.
 //!
 //! This module exposes a thin wrapper around the core engine using `napi-rs`.
 //!
@@ -14,28 +14,28 @@
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 
-use actiongate_core::ast::PolicyAst;
-use actiongate_core::compiler::{compile_policy, compile_with_governance};
-use actiongate_core::engine::{evaluate, EvaluationInput};
-use actiongate_core::governance::GovernanceAst;
-use actiongate_core::ir::{Effect, ScalarValue};
-use actiongate_core::schema::{Schema, SchemaAst};
+use actra::ast::PolicyAst;
+use actra::compiler::{compile_policy, compile_with_governance};
+use actra::engine::{evaluate, EvaluationInput};
+use actra::governance::GovernanceAst;
+use actra::ir::{Effect, ScalarValue};
+use actra::schema::{Schema, SchemaAst};
 use std::collections::HashMap;
-use actiongate_core::ir::CompiledPolicy;
-use actiongate_core::compiler_version as core_compiler_version;
+use actra::ir::CompiledPolicy;
+use actra::compiler_version as core_compiler_version;
 
-/// JavaScript-exposed ActionGate class.
+/// JavaScript-exposed Actra class.
 ///
 /// Compilation occurs during construction.
 /// Evaluation is stateless and deterministic.
 #[napi]
-pub struct ActionGate {
+pub struct Actra {
     compiled_policy: CompiledPolicy,
 }
 
 #[napi]
-impl ActionGate {
-    /// Creates a new ActionGate instance.
+impl Actra {
+    /// Creates a new Actra instance.
     ///
     /// Parameters:
     /// - `schema_yaml`: YAML schema definition

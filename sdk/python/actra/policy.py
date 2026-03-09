@@ -2,7 +2,7 @@ from pathlib import Path
 from os import PathLike
 from typing import Optional, Dict, Any, Union
 # Rust binding
-from ._actiongate_core import PyActionGate as _RustActionGate
+from .actra import PyActra as _RustActra
 
 ActionInput = Dict[str, Any]
 Decision = Dict[str, Any]
@@ -13,7 +13,7 @@ class Policy:
     Compiled policy object.
     """
 
-    def __init__(self, engine: _RustActionGate):
+    def __init__(self, engine: _RustActra):
         self._engine = engine
 
     # ------------------------------------------------------------------
@@ -34,7 +34,7 @@ class Policy:
         try:
             return self._engine.evaluate(context)
         except Exception as e:
-            raise RuntimeError(f"ActionGate evaluation failed: {e}") from e
+            raise RuntimeError(f"Actra evaluation failed: {e}") from e
 
     def policy_hash(self) -> str:
         """
@@ -46,9 +46,9 @@ class Policy:
         return f"Policy(policy_hash={self.policy_hash()})"
 
 
-class ActionGate:
+class Actra:
     """
-    Public Python SDK wrapper for the Rust-based ActionGate engine.
+    Public Python SDK wrapper for the Rust-based Actra engine.
 
     Responsibilities:
         - Developer ergonomics
@@ -63,10 +63,10 @@ class ActionGate:
         governance_yaml: Optional[str] = None,
     ) -> Policy:
         """
-        Initialize ActionGate directly from YAML strings.
+        Initialize Actra directly from YAML strings.
         Suitable for testing and dynamic usage.
         """
-        engine = _RustActionGate(schema_yaml, policy_yaml, governance_yaml)
+        engine = _RustActra(schema_yaml, policy_yaml, governance_yaml)
         return Policy(engine)
     
     @staticmethod
@@ -76,7 +76,7 @@ class ActionGate:
         governance_path: Optional[PathType] = None,
     ) -> Policy:
         """
-        Initialize ActionGate from YAML files.
+        Initialize Actra from YAML files.
         """
         schema_file = Path(schema_path)
         if not schema_file.is_file():
@@ -96,7 +96,7 @@ class ActionGate:
                 raise FileNotFoundError(f"Governance file not found: {governance_path}") 
             governance_yaml = governance_file.read_text(encoding="utf-8")
 
-        engine = _RustActionGate(schema_yaml, policy_yaml, governance_yaml)
+        engine = _RustActra(schema_yaml, policy_yaml, governance_yaml)
         return Policy(engine)
 
     @staticmethod
@@ -104,4 +104,4 @@ class ActionGate:
         """
         Returns compiler version string from Rust core.
         """
-        return _RustActionGate.compiler_version()
+        return _RustActra.compiler_version()

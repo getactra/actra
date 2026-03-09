@@ -1,4 +1,4 @@
-//! Error types used across ActionGate.
+//! Error types used across Actra.
 //!
 //! This module defines compile-time validation errors that can occur
 //! while transforming declarative policy definitions into an executable

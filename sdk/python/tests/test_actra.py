@@ -1,4 +1,4 @@
-import actiongate
+import actra
 
 # -----------------------------
 # 1. Define Schema
@@ -60,7 +60,7 @@ rules:
 # -----------------------------
 # 3. Initialize Engine
 # -----------------------------
-policy = actiongate.load_policy_from_string(schema_yaml, policy_yaml)
+policy = actra.load_policy_from_string(schema_yaml, policy_yaml)
 
 hash = policy.policy_hash()
 print("Policy Hash:", hash )

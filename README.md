@@ -1,8 +1,8 @@
-# ActionGate
+# Actra
 
 Deterministic admission control engine for state-changing operations in automated and agentic systems.
 
-ActionGate compiles declarative policy definitions into a validated,
+Actra compiles declarative policy definitions into a validated,
 immutable intermediate representation (IR) that can be evaluated
 efficiently against runtime inputs.
 
@@ -12,7 +12,7 @@ agentic runtimes and automated service workflows.
 
 ---
 
-## Why ActionGate?
+## Why Actra?
 
 Modern systems often mix:
 
@@ -23,7 +23,7 @@ Modern systems often mix:
 
 This leads to implicit, scattered mutation controls.
 
-ActionGate separates these concerns:
+Actra separates these concerns:
 
 1. **Schema** defines allowed structure.
 2. **Policy** defines decision logic.
@@ -49,7 +49,7 @@ Runtime evaluation performs no structural checks.
 
 ## Applicable Systems
 
-ActionGate is designed for systems that perform controlled mutations, including:
+Actra is designed for systems that perform controlled mutations, including:
 
 - Agentic AI runtimes
 - Tool-executing LLM systems
@@ -65,7 +65,7 @@ It is particularly relevant for:
 - Infrastructure orchestration engines
 
 In these environments, LLMs or automated processes may attempt
-state-changing operations. ActionGate provides a deterministic,
+state-changing operations. Actra provides a deterministic,
 compile-time validated control layer in front of those mutations.
 
 It does not replace orchestration logic or workflow execution.
@@ -85,7 +85,7 @@ Typical embedding points include:
 ## Example (Node.js)
 
 ```js
-const { ActionGate } = require('./index')
+const { Actra } = require('./index')
 
 const schema = `
 version: 1
@@ -118,9 +118,9 @@ rules:
     effect: block
 `
 
-const gate = new ActionGate(schema, policy)
+const actra = new Actra(schema, policy)
 
-const result = gate.evaluate({
+const result = actra.evaluate({
   action: { type: "delete_user", user_id: "123" },
   actor: { role: "user" },
   snapshot: {}
@@ -133,7 +133,7 @@ console.log(result)
 ## Example (Python)
 
 ```python
-from actiongate import ActionGate
+from actra import Actra
 
 schema = """
 version: 1
@@ -166,9 +166,9 @@ rules:
     effect: block
 """
 
-gate = ActionGate(schema, policy)
+actra = Actra(schema, policy)
 
-result = gate.evaluate({
+result = actra.evaluate({
     "action": {"type": "update_account", "account_id": "A1"},
     "actor": {"role": "user"},
     "snapshot": {}
@@ -179,7 +179,7 @@ print(result)
 
 ## Governance Layer
 
-ActionGate includes an optional governance DSL that allows higher-order constraints on policies:
+Actra includes an optional governance DSL that allows higher-order constraints on policies:
 
 - Require certain rules to exist
 - Restrict allowed fields
@@ -207,7 +207,7 @@ No dynamic validation occurs at runtime.
 
 ## Status
 
-ActionGate is currently in early foundation stage (v0.1.x).
+Actra is currently in early foundation stage (v0.1.x).
 
 Core architecture is stable.
 Public API may evolve as the DSL matures.

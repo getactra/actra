@@ -1,8 +1,8 @@
-use actiongate_core::ast::PolicyAst;
-use actiongate_core::compiler::{compile_with_governance};
-use actiongate_core::errors::CompileError;
-use actiongate_core::governance::GovernanceAst;
-use actiongate_core::schema::{Schema, SchemaAst};
+use actra::ast::PolicyAst;
+use actra::compiler::{compile_with_governance};
+use actra::errors::CompileError;
+use actra::governance::GovernanceAst;
+use actra::schema::{Schema, SchemaAst};
 
 #[test]
 fn governance_forbids_global_block() {
@@ -113,9 +113,9 @@ snapshot:
     fraud_flag: boolean
 "#;
 
-    let schema_ast: actiongate_core::schema::SchemaAst =
+    let schema_ast: actra::schema::SchemaAst =
         serde_yaml::from_str(schema_yaml).unwrap();
-    let schema = actiongate_core::schema::Schema::from_ast(schema_ast);
+    let schema = actra::schema::Schema::from_ast(schema_ast);
 
     // Policy WITHOUT fraud rule
     let policy_yaml = r#"
@@ -135,7 +135,7 @@ rules:
     effect: allow
 "#;
 
-    let policy: actiongate_core::ast::PolicyAst =
+    let policy: actra::ast::PolicyAst =
         serde_yaml::from_str(policy_yaml).unwrap();
 
     let governance_yaml = r#"
@@ -152,14 +152,14 @@ governance:
       error: "At least one block rule required"
 "#;
 
-    let governance: actiongate_core::governance::GovernanceAst =
+    let governance: actra::governance::GovernanceAst =
         serde_yaml::from_str(governance_yaml).unwrap();
 
     let result =
-        actiongate_core::compiler::compile_with_governance(&schema, policy, &governance);
+        actra::compiler::compile_with_governance(&schema, policy, &governance);
 
     match result {
-        Err(actiongate_core::errors::CompileError::Governance(violations)) => {
+        Err(actra::errors::CompileError::Governance(violations)) => {
             assert_eq!(violations.len(), 1);
             assert_eq!(violations[0].rule_id, "require_fraud_rule");
         }
@@ -187,9 +187,9 @@ snapshot:
     fraud_flag: boolean
 "#;
 
-    let schema_ast: actiongate_core::schema::SchemaAst =
+    let schema_ast: actra::schema::SchemaAst =
         serde_yaml::from_str(schema_yaml).unwrap();
-    let schema = actiongate_core::schema::Schema::from_ast(schema_ast);
+    let schema = actra::schema::Schema::from_ast(schema_ast);
 
     // Policy with TWO block rules
     let policy_yaml = r#"
@@ -221,7 +221,7 @@ rules:
     effect: block
 "#;
 
-    let policy: actiongate_core::ast::PolicyAst =
+    let policy: actra::ast::PolicyAst =
         serde_yaml::from_str(policy_yaml).unwrap();
 
     let governance_yaml = r#"
@@ -238,14 +238,14 @@ governance:
       error: "Only one block rule allowed"
 "#;
 
-    let governance: actiongate_core::governance::GovernanceAst =
+    let governance: actra::governance::GovernanceAst =
         serde_yaml::from_str(governance_yaml).unwrap();
 
     let result =
-        actiongate_core::compiler::compile_with_governance(&schema, policy, &governance);
+        actra::compiler::compile_with_governance(&schema, policy, &governance);
 
     match result {
-        Err(actiongate_core::errors::CompileError::Governance(violations)) => {
+        Err(actra::errors::CompileError::Governance(violations)) => {
             assert_eq!(violations.len(), 1);
             assert_eq!(violations[0].rule_id, "max_one_block_rule");
         }
@@ -275,9 +275,9 @@ snapshot:
     fraud_flag: boolean
 "#;
 
-    let schema_ast: actiongate_core::schema::SchemaAst =
+    let schema_ast: actra::schema::SchemaAst =
         serde_yaml::from_str(schema_yaml).unwrap();
-    let schema = actiongate_core::schema::Schema::from_ast(schema_ast);
+    let schema = actra::schema::Schema::from_ast(schema_ast);
 
     // Policy only has chargeback rule
     let policy_yaml = r#"
@@ -297,7 +297,7 @@ rules:
     effect: allow
 "#;
 
-    let policy: actiongate_core::ast::PolicyAst =
+    let policy: actra::ast::PolicyAst =
         serde_yaml::from_str(policy_yaml).unwrap();
 
     let governance_yaml = r#"
@@ -317,13 +317,13 @@ governance:
       error: "Refund must have a block rule"
 "#;
 
-    let governance: actiongate_core::governance::GovernanceAst =
+    let governance: actra::governance::GovernanceAst =
         serde_yaml::from_str(governance_yaml).unwrap();
 
     // Should pass because policy has no refund rules,
     // so governance rule is skipped.
     let result =
-        actiongate_core::compiler::compile_with_governance(&schema, policy, &governance);
+        actra::compiler::compile_with_governance(&schema, policy, &governance);
 
     assert!(result.is_ok());
 }
@@ -348,9 +348,9 @@ snapshot:
     fraud_flag: boolean
 "#;
 
-    let schema_ast: actiongate_core::schema::SchemaAst =
+    let schema_ast: actra::schema::SchemaAst =
         serde_yaml::from_str(schema_yaml).unwrap();
-    let schema = actiongate_core::schema::Schema::from_ast(schema_ast);
+    let schema = actra::schema::Schema::from_ast(schema_ast);
 
     // Policy WITHOUT fraud_flag rule
     let policy_yaml = r#"
@@ -370,7 +370,7 @@ rules:
     effect: allow
 "#;
 
-    let policy: actiongate_core::ast::PolicyAst =
+    let policy: actra::ast::PolicyAst =
         serde_yaml::from_str(policy_yaml).unwrap();
 
     let governance_yaml = r#"
@@ -390,11 +390,11 @@ governance:
       error: "Fraud rule required"
 "#;
 
-    let governance: actiongate_core::governance::GovernanceAst =
+    let governance: actra::governance::GovernanceAst =
         serde_yaml::from_str(governance_yaml).unwrap();
 
     let result =
-        actiongate_core::compiler::compile_with_governance(&schema, policy, &governance);
+        actra::compiler::compile_with_governance(&schema, policy, &governance);
 
     assert!(result.is_err());
 }
@@ -419,9 +419,9 @@ snapshot:
     fraud_flag: boolean
 "#;
 
-    let schema_ast: actiongate_core::schema::SchemaAst =
+    let schema_ast: actra::schema::SchemaAst =
         serde_yaml::from_str(schema_yaml).unwrap();
-    let schema = actiongate_core::schema::Schema::from_ast(schema_ast);
+    let schema = actra::schema::Schema::from_ast(schema_ast);
 
     // Policy references action.amount
     let policy_yaml = r#"
@@ -441,7 +441,7 @@ rules:
     effect: allow
 "#;
 
-    let policy: actiongate_core::ast::PolicyAst =
+    let policy: actra::ast::PolicyAst =
         serde_yaml::from_str(policy_yaml).unwrap();
 
     let governance_yaml = r#"
@@ -459,11 +459,11 @@ governance:
       error: "Only fraud_flag may be used"
 "#;
 
-    let governance: actiongate_core::governance::GovernanceAst =
+    let governance: actra::governance::GovernanceAst =
         serde_yaml::from_str(governance_yaml).unwrap();
 
     let result =
-        actiongate_core::compiler::compile_with_governance(&schema, policy, &governance);
+        actra::compiler::compile_with_governance(&schema, policy, &governance);
 
     assert!(result.is_err());
 }
@@ -489,9 +489,9 @@ snapshot:
     fraud_flag: boolean
 "#;
 
-    let schema_ast: actiongate_core::schema::SchemaAst =
+    let schema_ast: actra::schema::SchemaAst =
         serde_yaml::from_str(schema_yaml).unwrap();
-    let schema = actiongate_core::schema::Schema::from_ast(schema_ast);
+    let schema = actra::schema::Schema::from_ast(schema_ast);
 
     // Policy references fraud_flag only
     let policy_yaml = r#"
@@ -511,7 +511,7 @@ rules:
     effect: block
 "#;
 
-    let policy: actiongate_core::ast::PolicyAst =
+    let policy: actra::ast::PolicyAst =
         serde_yaml::from_str(policy_yaml).unwrap();
 
     let governance_yaml = r#"
@@ -529,11 +529,11 @@ governance:
       error: "Only fraud_flag allowed"
 "#;
 
-    let governance: actiongate_core::governance::GovernanceAst =
+    let governance: actra::governance::GovernanceAst =
         serde_yaml::from_str(governance_yaml).unwrap();
 
     let result =
-        actiongate_core::compiler::compile_with_governance(&schema, policy, &governance);
+        actra::compiler::compile_with_governance(&schema, policy, &governance);
 
     assert!(result.is_ok());
 }

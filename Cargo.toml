@@ -12,7 +12,7 @@ version = "0.2.0"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["Amit Saxena"]
-repository = "https://github.com/actiongatehq/actiongate"
+repository = "https://github.com/getactra/actra"
 description = "Deterministic admission control engine for state-changing operations in automated systems."
 keywords = [
     "policy",
