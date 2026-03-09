@@ -71,7 +71,7 @@ jobs:
         env:
           CIBW_BUILD: "cp39-*"
           CIBW_BUILD_VERBOSITY: 2
-          CIBW_SKIP: "*-musllinux_i686"
+          CIBW_SKIP: "*-musllinux_*"
           CIBW_ARCHS_MACOS: "universal2"
           CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=10.12"
           CIBW_TEST_COMMAND: python -c "import actra; print('actra imported from:', actra.__file__)"
@@ -124,22 +124,22 @@ jobs:
           pip install wheelhouse/*.whl
           python -c "import actra"
 
-  publish_test:
-    if: github.ref_type == 'branch'
-    needs: [build_wheels, build_sdist]
-    runs-on: ubuntu-latest
+ # publish_test:
+ #   if: github.ref_type == 'branch'
+ #   needs: [build_wheels, build_sdist]
+ #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: dist
-          merge-multiple: true
+ #   steps:
+ #     - uses: actions/download-artifact@v4
+ #       with:
+ #         path: dist
+ #        merge-multiple: true
 
-      - name: Publish to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+  #    - name: Publish to TestPyPI
+  #      uses: pypa/gh-action-pypi-publish@release/v1
+  #      with:
+  #        repository-url: https://test.pypi.org/legacy/
+  #        password: ${{ secrets.TEST_PYPI_API_TOKEN }}
 
 
  # publish:
