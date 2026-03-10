@@ -158,7 +158,7 @@ jobs:
         with:
           verbose: true
           repository-url: https://test.pypi.org/legacy/
-          password: ${{ secrets.PYPI_SECRET }}
+          password: ${{ secrets.TEST_PYPI_SECRET }}
           packages-dir: dist
 
  # publish:
