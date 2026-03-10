@@ -131,9 +131,9 @@ jobs:
     runs-on: ubuntu-latest
     #environment: pypi
 
-    permissions:
-      id-token: write
-      contents: read
+    #permissions:
+    #  id-token: write
+    #  contents: read
 
     steps:
       - uses: actions/download-artifact@v4
@@ -156,6 +156,7 @@ jobs:
       - name: Publish wheels + sdist to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
+          verbose: true
           repository-url: https://test.pypi.org/legacy/
           password: ${{ secrets.PYPI_SECRET }}
           packages-dir: dist
