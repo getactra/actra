@@ -151,11 +151,13 @@ jobs:
           mkdir -p dist
           cp wheelhouse/*.whl dist/ 2>/dev/null || true
           cp sdist/*.tar.gz dist/ 2>/dev/null || true
+          ls -la dist/
 
       - name: Publish wheels + sdist to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          password: ${{ secrets.PYPI_SECRET }}
           packages-dir: dist
 
  # publish:
