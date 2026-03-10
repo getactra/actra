@@ -118,6 +118,7 @@ jobs:
           python -c "import actra; print('actra imported from:', actra.__file__)"
 
   publish_test:
+    name: Publish to Test PyPI
     if: github.event_name == 'workflow_dispatch'
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
@@ -160,7 +161,8 @@ jobs:
 
   publish:
     name: Publish to PyPI
-    if: startsWith(github.ref, 'refs/tags/v')
+    #if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'workflow_dispatch'
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
 
