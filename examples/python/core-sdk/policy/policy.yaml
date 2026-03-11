@@ -1,0 +1,14 @@
+version: 1
+
+rules:
+  - id: block_large_refund
+    scope:
+      action: refund
+    when:
+      subject:
+        domain: action
+        field: amount
+      operator: greater_than
+      value:
+        literal: 1000
+    effect: block

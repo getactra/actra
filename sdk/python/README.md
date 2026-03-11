@@ -1,8 +1,18 @@
 # Actra Python SDK
 
-Deterministic admission control for state-changing operations in automated and agentic systems.
+Deterministic admission control and policy evaluation for state-changing
+operations in automated and agentic systems.
 
 The **Actra Python SDK** provides a simple interface for loading policies and evaluating decisions using the Actra engine written in Rust.
+
+---
+
+## Runtime Admission Control
+
+The SDK also provides a runtime layer for protecting functions using Actra policies.
+
+If a policy blocks the operation, the function will not execute and a
+PermissionError will be raised.
 
 ---
 
@@ -22,19 +32,24 @@ The package includes a compiled Rust engine, so no Rust toolchain is required du
 
 ```python
 import actra
+from actra import ActraRuntime
 
 policy = actra.load_policy_from_file(
     "schema.yaml",
     "policy.yaml"
 )
 
-decision = policy.evaluate({
-    "action": {"type": "deploy"},
-    "actor": {"role": "admin"},
-    "snapshot": {}
-})
+runtime = ActraRuntime(policy)
 
-print(decision)
+runtime.set_actor_resolver(lambda ctx: {"role": "admin"})
+runtime.set_snapshot_resolver(lambda ctx: {})
+
+@runtime.admit()
+def deploy():
+    print("Deployment executed")
+
+deploy()
+
 ```
 
 ---
@@ -122,29 +137,6 @@ Retrieve the underlying compiler version:
 import actra
 
 actra.Actra.compiler_version()
-```
-
----
-
-## Example
-
-```python
-import actra
-
-policy = actra.load_policy_from_file(
-    "schema.yaml",
-    "policy.yaml"
-)
-
-request = {
-    "action": {"type": "deploy"},
-    "actor": {"role": "developer"},
-    "snapshot": {}
-}
-
-decision = policy.evaluate(request)
-
-print("Decision:", decision)
 ```
 
 ---

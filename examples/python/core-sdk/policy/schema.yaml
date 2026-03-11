@@ -1,0 +1,14 @@
+version: 1
+
+actions:
+  refund:
+    fields:
+      amount: number
+
+actor:
+  fields:
+    role: string
+
+snapshot:
+  fields:
+    fraud_flag: boolean

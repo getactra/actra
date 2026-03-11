@@ -1,5 +1,8 @@
-from .policy import Actra, Policy
 from importlib.metadata import version, PackageNotFoundError
+
+from .policy import Actra, Policy
+from .runtime import ActraRuntime
+from .types import Action, Actor, Snapshot, Decision, Context
 
 try:
     __version__ = version("actra")
@@ -13,8 +16,19 @@ compiler_version = Actra.compiler_version
 __all__ = [
     "Actra",
     "Policy",
+    "ActraRuntime",
+
+    # Runtime types
+    "Action",
+    "Actor",
+    "Snapshot",
+    "Decision",
+    "Context",
+    
+    # Helpers
     "load_policy_from_file",
     "load_policy_from_string",
     "compiler_version",
-    "__version__"
+
+    "__version__",
 ]
