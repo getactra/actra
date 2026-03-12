@@ -1,21 +1,20 @@
 """
-Manual Runtime Evaluation Example
+Build Action Example
 
-This example demonstrates how to use ActraRuntime directly
-without decorators.
+This example demonstrates how to use `ActraRuntime.build_action`
+when evaluating actions outside of decorators
 
-This pattern is useful for integrations such as:
+This pattern is useful for integrations where the application
+does not call a protected function, such as:
+
 - API frameworks
+- message queues
 - MCP servers
 - background workers
-- CLI tools
-
-The application constructs an action object and asks
-the runtime to evaluate it.
 """
 
-from actra import Actra
-from actra.runtime import ActraRuntime
+from actra import Actra, ActraRuntime
+
 
 # ------------------------------------------------------------
 # 1. Schema
@@ -38,6 +37,7 @@ snapshot:
     fraud_flag: boolean
 """
 
+
 # ------------------------------------------------------------
 # 2. Policy
 # ------------------------------------------------------------
@@ -59,58 +59,58 @@ rules:
     effect: block
 """
 
+
 # ------------------------------------------------------------
 # 3. Compile policy
 # ------------------------------------------------------------
 
 policy = Actra.from_strings(schema_yaml, policy_yaml)
-
-# ------------------------------------------------------------
-# 4. Create runtime
-# ------------------------------------------------------------
-
 runtime = ActraRuntime(policy)
 
+
 # ------------------------------------------------------------
-# 5. Context resolvers
+# 4. Register resolvers
 # ------------------------------------------------------------
 
 runtime.set_actor_resolver(lambda ctx: {"role": "support"})
 runtime.set_snapshot_resolver(lambda ctx: {"fraud_flag": False})
 
-# ------------------------------------------------------------
-# 6. Build an action manually
-# ------------------------------------------------------------
-# In many integrations the action will come from:
-# - HTTP requests
-# - tool calls
-# - message queues
-#
 
-action = {
-    "type": "refund",
+# ------------------------------------------------------------
+# 5. Example external input
+# ------------------------------------------------------------
+# Imagine this comes from an API request or message queue
+
+request_data = {
     "amount": 200
 }
 
-# ------------------------------------------------------------
-# 7. Evaluate the action
-# ------------------------------------------------------------
-
-result = runtime.evaluate(action)
-
-print("\nEvaluation result:")
-print(result)
 
 # ------------------------------------------------------------
-# 8. Blocked example
+# 6. Define a handler signature
+# ------------------------------------------------------------
+# build_action uses the function signature to determine which
+# fields are valid action parameters.
+#
+# The function is NOT executed. It is only used for introspection.
+
+def fake_handler(amount):
+    pass
+
+
+action = runtime.build_action(
+    func=fake_handler,
+    action_type="refund",
+    args=(),
+    kwargs=request_data,
+    ctx=None
+)
+
+
+# ------------------------------------------------------------
+# 7. Evaluate decision
 # ------------------------------------------------------------
 
-blocked_action = {
-    "type": "refund",
-    "amount": 1500
-}
+decision = runtime.evaluate(action)
 
-blocked_result = runtime.evaluate(blocked_action)
-
-print("\nBlocked evaluation result:")
-print(blocked_result)
+print("Decision:", decision)

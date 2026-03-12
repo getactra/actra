@@ -8,7 +8,7 @@ Custom builders are useful when application inputs do not
 map directly to policy fields.
 """
 
-from actra import Actra
+from actra import Actra, ActraPolicyError
 from actra.runtime import ActraRuntime
 
 
@@ -79,6 +79,7 @@ runtime.set_snapshot_resolver(lambda ctx: {"fraud_flag": False})
 def build_refund_action(action_type, args, kwargs, ctx):
     """
     Convert application inputs into the policy action object.
+    Only fields defined in the policy schema should be included
     """
 
     return {
@@ -104,4 +105,9 @@ print("\nAllowed call")
 refund(amount=200, currency="USD")
 
 print("\nBlocked call")
-refund(amount=1500, currency="USD")
+
+try:
+  refund(amount=1500, currency="USD")
+except ActraPolicyError as e:
+   print("Refund blocked by policy")
+   print("Rule:", e.matched_rule)

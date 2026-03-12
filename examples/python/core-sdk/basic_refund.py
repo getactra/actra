@@ -8,7 +8,7 @@ Actra evaluates a policy BEFORE the function executes
 and blocks the call if the policy denies it.
 """
 
-from actra import Actra
+from actra import Actra, ActraPolicyError
 from actra.runtime import ActraRuntime
 
 
@@ -121,4 +121,8 @@ refund(amount=200)
 
 
 print("\n--- Blocked call ---")
-refund(amount=1500)
+try:
+    refund(amount=1500)
+except ActraPolicyError as e:
+    print("Refund blocked by policy")
+    print("Rule:", e.matched_rule )

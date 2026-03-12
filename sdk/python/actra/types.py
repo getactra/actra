@@ -14,3 +14,5 @@ ActionBuilder = Callable[[str, Tuple[Any, ...], Dict[str, Any], Context], Action
 ActorResolver = Callable[[Context], Actor]
 SnapshotResolver = Callable[[Context], Snapshot]
 ActionResolver = Callable[[str, Tuple[Any, ...], Dict[str, Any], Context], Action]
+ContextResolver = Callable[[Tuple, Dict[str, Any]], Context]
+ActionTypeResolver = Callable[[Callable, Tuple, Dict[str, Any]], str]
