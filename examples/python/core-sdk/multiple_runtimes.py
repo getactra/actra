@@ -7,7 +7,7 @@ can coexist in the same application.
 Each runtime can enforce a different policy.
 """
 
-from actra import Actra
+from actra import Actra, ActraPolicyError
 from actra.runtime import ActraRuntime
 
 
@@ -156,8 +156,9 @@ support_refund(amount=200)
 
 try:
     support_refund(amount=5000)
-except PermissionError as e:
-    print(e)
+except ActraPolicyError as e:
+    print("Support refund blocked")
+    print("Rule:",e.matched_rule)
 
 
 print("\nAdmin runtime")
@@ -166,5 +167,6 @@ admin_refund(amount=5000)
 
 try:
     admin_refund(amount=20000)
-except PermissionError as e:
-    print(e)
+except ActraPolicyError as e:
+    print("Admin refund blocked")
+    print("Rule:",e.matched_rule)

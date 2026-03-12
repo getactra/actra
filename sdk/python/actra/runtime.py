@@ -1,6 +1,9 @@
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Dict, Any, Callable
 from functools import wraps
 import inspect
+from datetime import datetime
+import time
+
 from .types import (
     Action,
     Actor,
@@ -12,7 +15,12 @@ from .types import (
     ActorResolver,
     SnapshotResolver,
     ActionResolver,
+    ContextResolver,
+    ActionTypeResolver,
 )
+from .errors import ActraPolicyError
+from .policy import Policy
+from .events import DecisionEvent
 
 class ActraRuntime:
     """
@@ -52,7 +60,7 @@ class ActraRuntime:
         - AI agent tool systems
     """
 
-    def __init__(self, policy):
+    def __init__(self, policy: Policy) -> None:
         """
         Create a runtime bound to a compiled policy.
 
@@ -65,8 +73,30 @@ class ActraRuntime:
         self._actor_resolver: Optional[ActorResolver] = None
         self._snapshot_resolver: Optional[SnapshotResolver] = None
         self._action_resolver: Optional[ActionResolver] = None
-
+        self._context_resolver: Optional[ContextResolver] = None
+        self._action_type_resolver: Optional[ActionTypeResolver] = None
+        self._decision_observer: Optional[Callable[[DecisionEvent], None]] = None
+    
     # Resolvers
+    def set_decision_observer(self, fn: Callable[[DecisionEvent], None]) -> None:
+        """
+        Register an observer invoked after every policy evaluation
+
+        The observer receives a `DecisionEvent` object containing
+        the evaluated action, decision result, and evaluation context
+
+        This mechanism allows developers to integrate Actra with
+        logging, metrics, auditing or monitoring systems
+
+        Example:
+
+            def observer(event):
+                print(event.effect, event.rule_id)
+
+            runtime.set_decision_observer(observer)
+        """
+        self._decision_observer = fn
+
     def set_actor_resolver(self, fn: ActorResolver) -> None:
         """
         Register a function that resolves the actor identity.
@@ -130,6 +160,25 @@ class ActraRuntime:
             )
         """
         self._action_resolver = fn
+    
+    def set_context_resolver(self, fn: ContextResolver) -> None:
+        """
+        Register a function that extracts execution context
+        from function arguments.
+
+        Signature:
+            fn(args, kwargs) -> ctx
+        """
+        self._context_resolver = fn
+    
+    def set_action_type_resolver(self, fn: ActionTypeResolver) -> None:
+        """
+        Register a function that determines the action type dynamically.
+
+        Signature:
+            fn(func, args, kwargs) -> str
+        """
+        self._action_type_resolver = fn
 
     # Context helpers
     def resolve_actor(self, ctx: Context) -> Actor:
@@ -161,44 +210,154 @@ class ActraRuntime:
         if self._snapshot_resolver:
             return self._snapshot_resolver(ctx)
         return {}
+
+    def resolve_context(self, args: Tuple, kwargs: Dict[str, Any]) -> Optional[Context]:
+        """
+        Resolve execution context from function inputs
+
+        Integrations (such as MCP, API frameworks or agents) may provide
+        context objects through a custom resolver
+
+        Args:
+            args:
+                Positional arguments passed to the function
+
+            kwargs:
+                Keyword arguments passed to the function
+
+        Returns:
+            Context object used during policy evaluation, or None.
+        
+        Context resolution order:
+
+            1. Explicit context resolver
+            2. `ctx` keyword argument
+            3. No context
+        """
+        # Custom resolver (integration configured)
+        if self._context_resolver:
+            return self._context_resolver(args, kwargs)
+        
+        # Automatic detection
+        if "ctx" in kwargs:
+            return kwargs["ctx"]
+        
+        return None
+    
+    def resolve_action_type(
+        self,
+        func: Callable,
+        args: Tuple,
+        kwargs: Dict[str, Any],
+        action_type: Optional[str]
+    ) -> str:
+        """
+        Determine the action type used for policy evaluation
+
+        The action type may be:
+
+            1. Explicitly provided via the decorator
+            2. Determined by a configured action type resolver
+            3. Derived from the function name
+
+        Args:
+            func:
+                The protected function
+
+            args:
+                Positional arguments passed to the function
+
+            kwargs:
+                Keyword arguments passed to the function
+
+            action_type:
+                Optional action type provided to the decorator
+
+        Returns:
+            The resolved action type string
+        """
+        if action_type:
+            return action_type
+
+        if self._action_type_resolver:
+            return self._action_type_resolver(func, args, kwargs)
+
+        return func.__name__
+
+
+    # Emit decison events
+    def _emit_decision_event(self, decision, action, context, duration_ms):
+        if not self._decision_observer:
+            return
+
+        event = DecisionEvent(
+            action=action,
+            decision=decision,
+            context=context,
+            duration_ms=duration_ms
+        )
+
+        self._decision_observer(event)
     
     # Action construction
 
     def build_action(self, 
                      action_type: str,
                      args: Tuple,
-                     kwargs: dict,
+                     kwargs: Dict[str, Any],
                      ctx: Context,
+                     func: Optional[Callable] = None,
                      fields: Optional[List[str]]=None,
-                     builder: Optional[ActionBuilder]=None
+                     action_builder: Optional[ActionBuilder]=None
     ) -> Action:
         """
-        Construct an Actra action object.
+        Construct an Actra action object
 
-        This method converts application inputs into a structured
-        action dictionary used for policy evaluation.
+        This method converts application inputs into the structured
+        action dictionary used for policy evaluation
+
+        The `func` parameter is used for signature introspection.
+        Actra inspects the function signature to determine which
+        parameters should be included in the action object
+
+        This prevents internal parameters (such as request context,
+        framework metadata, etc.) from leaking into the policy engine
 
         Args:
+            func:
+                Optional Function whose signature defines the allowed action fields.
+                The function is **not executed**. It is only inspected to
+                determine valid parameter names
+
+                When provided, Actra inspects the function parameters
+                to determine which fields should be included in the
+                action object.
+
+                Integrations that do not have a handler function
+                (for example APIs, MCP tools, message queues) may
+                pass `None`.
+
             action_type:
-                Logical action name (typically the function name).
+                Logical action name used for policy evaluation
 
             args:
-                Positional arguments passed to the function.
+                Positional arguments supplied to the function
 
             kwargs:
-                Keyword arguments passed to the function.
+                Keyword arguments supplied to the function
 
             ctx:
-                Optional execution context provided by integrations.
+                Optional execution context used by resolvers
 
             fields:
-                Optional list of keyword fields to include.
+                Optional list restricting which keyword arguments are
+                included in the action object
 
-            builder:
-                Optional custom action builder function.
+            action_builder:
+                Optional custom function used to build the action
 
         Returns:
-            Dictionary representing the action.
+            Action dictionary used for policy evaluation
 
         Example result:
 
@@ -207,19 +366,25 @@ class ActraRuntime:
                 "amount": 200
             }
         """
-        if builder:
-            return builder(action_type, args, kwargs, ctx)
+        if action_builder:
+            return action_builder(action_type, args, kwargs, ctx)
         if self._action_resolver:
             return self._action_resolver(action_type, args, kwargs, ctx)
         if fields:
             action_fields = {k: kwargs[k] for k in fields if k in kwargs}
         else:
             # Default: include kwargs but ignore internal parameters
-            action_fields = {
-                k: v
-                for k, v in kwargs.items()
-                if not k.startswith("_")
-            }
+            if func:
+                sig = inspect.signature(func)
+                allowed_fields = set(sig.parameters)
+                action_fields = {
+                    k: v
+                    for k, v in kwargs.items()
+                    if k in allowed_fields
+                }
+            else:
+                # No function available — trust provided kwargs
+                action_fields = dict(kwargs)
         return {
             "type": action_type,
             **action_fields
@@ -255,6 +420,153 @@ class ActraRuntime:
             "snapshot": snapshot
         }
 
+    def _enforce_policy(
+        self,
+        func: Callable,
+        args: Tuple,
+        kwargs: Dict[str, Any],
+        action_type: Optional[str],
+        fields: Optional[List[str]],
+        action_builder: Optional[ActionBuilder]
+    ) -> None:
+        """
+        Evaluate the Actra policy before executing the wrapped function
+
+        This method performs the full admission control flow:
+
+            1. Resolve execution context
+            2. Resolve the action type
+            3. Build the action object
+            4. Evaluate the policy decision
+            5. Raise `ActraPolicyError` if the decision blocks execution
+
+        This method is used internally by the `admit` decorator
+        """
+        ctx = self.resolve_context(args, kwargs)
+        act = self.resolve_action_type(func, args, kwargs, action_type)
+        action = self.build_action(
+            act,
+            args,
+            kwargs,
+            ctx,
+            func=func,
+            fields=fields,
+            action_builder=action_builder
+        )
+        context = self.build_context(action, ctx)
+        result = self.evaluate(action, ctx)
+
+        if result.get("effect") == "block":
+            raise ActraPolicyError(
+                action_type=act,
+                decision=result,
+                context=context
+            )
+
+
+    def explain(self, action: Action, ctx: Context = None) -> Decision:
+        """
+        Evaluate a policy decision and print a human-readable explanation
+
+        This method behaves similarly to `evaluate()` but delegates to
+        `Policy.explain()` so that the full evaluation context and decision
+        are displayed.
+
+        It is useful for:
+
+            - debugging policies
+            - interactive experimentation
+            - understanding why a decision was made
+
+        Args:
+            action:
+                Action dictionary describing the operation
+
+            ctx:
+                Optional execution context passed to resolvers
+
+        Returns:
+            The policy decision dictionary
+        """
+
+        context = self.build_context(action, ctx)
+        return self.policy.explain(context)
+    
+    def explain_call(self, func: Callable, *args, **kwargs) -> Decision:
+        """
+        Explain the policy decision for a function call without executing it.
+
+        This helper reconstructs the policy evaluation flow used by the
+        `@runtime.admit` decorator and prints a human-readable explanation
+        of the decision.
+
+        It is particularly useful for:
+
+            - debugging policy behavior
+            - understanding why a rule triggered
+            - testing policy inputs interactively
+            - verifying runtime resolvers
+
+        The method performs the following steps:
+
+            1. Resolve execution context from the function arguments
+            2. Determine the action type
+            3. Build the Actra action object
+            4. Construct the full evaluation context
+            5. Invoke `Policy.explain()` to display the decision
+
+        Unlike the decorator, this method does not execute the function.
+
+        Args:
+            func:
+                The function protected by Actra admission control.
+
+            *args:
+                Positional arguments that would be passed to the function.
+
+            **kwargs:
+                Keyword arguments that would be passed to the function.
+
+        Returns:
+            Decision dictionary returned by the policy engine.
+
+        Example:
+
+            runtime.explain_call(refund, amount=1500)
+
+        Example output:
+
+            Actra Decision
+            --------------
+
+            Action:
+                type: refund
+                amount: 1500
+
+            Actor:
+                role: support
+
+            Snapshot:
+                fraud_flag: False
+
+            Result:
+                effect: block
+                rule_id: block_large_refund
+        """
+
+        ctx = self.resolve_context(args, kwargs)
+        act = self.resolve_action_type(func, args, kwargs, None)
+
+        action = self.build_action(
+            func,
+            act,
+            args,
+            kwargs,
+            ctx
+        )
+
+        return self.explain(action, ctx)
+
     # Policy evaluation
     def evaluate(self, action: Action, ctx: Context = None) -> Decision:
         """
@@ -268,10 +580,18 @@ class ActraRuntime:
                 Optional execution context passed to resolvers.
 
         Returns:
-            Decision dictionary returned by the policy engine.
+            Decision dictionary returned by the policy engine and emits DecisionEvent
         """
         context = self.build_context(action, ctx)
-        return self.policy.evaluate(context)
+        start = time.perf_counter()
+
+        decision = self.policy.evaluate(context)
+
+        duration_ms = (time.perf_counter() - start) * 1000
+
+        self._emit_decision_event(decision, action, context, duration_ms)
+
+        return decision
     
     # Admission control decorator
 
@@ -349,46 +669,112 @@ class ActraRuntime:
                     ...
         """
         def decorator(func):
-            # Default action type is the Python function name
-            act = action_type or func.__name__
             is_async = inspect.iscoroutinefunction(func)
-
-            def evaluate_policy(args, kwargs):
-                # Runtime does not extract context from function arguments.
-                ctx = None
-
-                action = self.build_action(
-                    act,
-                    args,
-                    kwargs,
-                    ctx,
-                    fields=fields,
-                    builder=action_builder,
-                )
-
-                result = self.evaluate(action, ctx)
-
-                if result.get("effect") == "block":
-                    rule = result.get("rule_id")
-
-                    if rule:
-                        raise PermissionError(
-                            f"Actra policy blocked action '{act}' (rule: {rule})"
-                        )
-                    else:
-                        raise PermissionError(
-                            f"Actra policy blocked action '{act}'"
-                        )
-
             if is_async:
                 @wraps(func)
                 async def wrapper(*args, **kwargs):
-                    evaluate_policy(args, kwargs)
+                    self._enforce_policy(
+                        func,
+                        args,
+                        kwargs,
+                        action_type,
+                        fields,
+                        action_builder
+                    )
                     return await func(*args, **kwargs)
             else:
                 @wraps(func)
                 def wrapper(*args, **kwargs):
-                    evaluate_policy(args, kwargs)
+                    self._enforce_policy(
+                        func,
+                        args,
+                        kwargs,
+                        action_type,
+                        fields,
+                        action_builder
+                    )
+                    return func(*args, **kwargs)
+            return wrapper
+        return decorator
+
+    # Audit Policy 
+    def audit(
+        self,
+        action_type: Optional[str] = None,
+        fields: Optional[List[str]] = None,
+        action_builder: Optional[ActionBuilder] = None
+    ):
+        """
+        Observe policy decisions without enforcing them
+
+        The `audit` decorator evaluates the policy before executing the
+        function but never blocks execution, even if the policy decision
+        is `"block"`
+
+        This mode is useful for:
+
+            - auditing policy violations
+            - monitoring rule triggers
+            - debugging policy behavior
+            - gradual policy rollout
+
+        Policy decisions still emit `DecisionEvent` objects through the
+        runtime observer mechanism
+
+        Example:
+
+            @runtime.audit(action_type="refund")
+            def refund(amount):
+                ...
+
+        Args:
+            action_type:
+                Optional override for the action name
+
+            fields:
+                Optional list of keyword arguments to include in the action
+
+            action_builder:
+                Optional custom function used to construct the action object
+
+        Returns:
+            Decorated function that evaluates policy but never blocks execution
+        """
+
+        def decorator(func):
+            is_async = inspect.iscoroutinefunction(func)
+
+            if is_async:
+                @wraps(func)
+                async def wrapper(*args, **kwargs):
+                    try:
+                        self._enforce_policy(
+                            func,
+                            args,
+                            kwargs,
+                            action_type,
+                            fields,
+                            action_builder
+                        )
+                    except ActraPolicyError:
+                        # Ignore block in audit mode
+                        pass
+                    return await func(*args, **kwargs)
+            else:
+                @wraps(func)
+                def wrapper(*args, **kwargs):
+                    try:
+                        self._enforce_policy(
+                            func,
+                            args,
+                            kwargs,
+                            action_type,
+                            fields,
+                            action_builder
+                        )
+                    except ActraPolicyError:
+                        # Ignore block in audit mode
+                        pass
                     return func(*args, **kwargs)
             return wrapper
         return decorator

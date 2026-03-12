@@ -3,6 +3,8 @@ from importlib.metadata import version, PackageNotFoundError
 from .policy import Actra, Policy
 from .runtime import ActraRuntime
 from .types import Action, Actor, Snapshot, Decision, Context
+from .errors import ActraError, ActraPolicyError
+from .events import DecisionEvent
 
 try:
     __version__ = version("actra")
@@ -17,6 +19,9 @@ __all__ = [
     "Actra",
     "Policy",
     "ActraRuntime",
+    "ActraError",
+    "ActraPolicyError",
+    "DecisionEvent",
 
     # Runtime types
     "Action",

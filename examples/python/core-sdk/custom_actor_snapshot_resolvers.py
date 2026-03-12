@@ -2,11 +2,22 @@
 Custom Actor and Snapshot Resolvers Example
 
 Demonstrates how runtime context can be used to dynamically
-resolve actor and system state.
+resolve actor identity and external system state.
+
+Resolvers allow applications to supply policy inputs
+from runtime context such as:
+
+- authenticated user identity
+- request metadata
+- system state
+
 """
 
-from actra import Actra, ActraRuntime
+from actra import Actra, ActraRuntime, ActraPolicyError
 
+# ------------------------------------------------------------
+# 1. Schema
+# ------------------------------------------------------------
 
 schema_yaml = """
 version: 1
@@ -25,6 +36,9 @@ snapshot:
     fraud_flag: boolean
 """
 
+# ------------------------------------------------------------
+# 2. Policy
+# ------------------------------------------------------------
 
 policy_yaml = """
 version: 1
@@ -50,31 +64,46 @@ rules:
     effect: block
 """
 
+# ------------------------------------------------------------
+# 3. Compile policy
+# ------------------------------------------------------------
 
 policy = Actra.from_strings(schema_yaml, policy_yaml)
 runtime = ActraRuntime(policy)
 
-
-# Example request context
+# ------------------------------------------------------------
+# 4. Example request context
+# ------------------------------------------------------------
 class RequestContext:
     def __init__(self, role, fraud_flag):
         self.role = role
         self.fraud_flag = fraud_flag
 
 
-# Actor resolver
+# ------------------------------------------------------------
+# 5. Register resolvers
+# ------------------------------------------------------------
+
+# Actor resolver extracts identity information
+
 runtime.set_actor_resolver(
     lambda ctx: {"role": ctx.role}
 )
 
-# Snapshot resolver
+# Snapshot resolver extracts system state
 runtime.set_snapshot_resolver(
     lambda ctx: {"fraud_flag": ctx.fraud_flag}
 )
 
+# ------------------------------------------------------------
+# 6. Create runtime context
+# ------------------------------------------------------------
 
 ctx = RequestContext(role="support", fraud_flag=False)
 
+# ------------------------------------------------------------
+# 8. Build action
+# ------------------------------------------------------------
 
 action = runtime.build_action(
     action_type="refund",
@@ -83,6 +112,9 @@ action = runtime.build_action(
     ctx=ctx
 )
 
-decision = runtime.evaluate(action, ctx)
+# ------------------------------------------------------------
+# 9. Evaluate policy
+# ------------------------------------------------------------
 
+decision = runtime.evaluate(action, ctx)
 print(decision)

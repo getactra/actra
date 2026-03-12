@@ -2,13 +2,18 @@
 Field Filtering Example
 
 This example demonstrates how to restrict which parameters
-become part of the Actra action object.
+become part of the Actra action object
 
-This is useful when functions contain additional arguments
-that should not be exposed to the policy engine.
+Field filtering is useful when functions contain additional
+arguments that should not be exposed to the policy engine
+
+In this example the function accepts both `amount` and
+`currency`, but the policy schema only defines the `amount`
+field. The `fields` parameter ensures only the allowed fields
+are included in the policy action
 """
 
-from actra import Actra
+from actra import Actra, ActraPolicyError
 from actra.runtime import ActraRuntime
 
 
@@ -85,4 +90,8 @@ print("\nAllowed call")
 refund(amount=200, currency="USD")
 
 print("\nBlocked call")
-refund(amount=1500, currency="USD")
+try:
+  refund(amount=1500, currency="USD")
+except ActraPolicyError as e:
+   print("Refund blocked by policy")
+   print("Rule:", e.matched_rule)
