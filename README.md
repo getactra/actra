@@ -118,7 +118,7 @@ B --> C[Actra Admission Control]
 
 C --> D[Schema]
 C --> E[Policies]
-C --> F[Governance (optional)]
+C --> F[Governance optional]
 C --> G[Runtime Context]
 
 G --> G1[Actor]
