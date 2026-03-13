@@ -91,7 +91,7 @@ class ActraRuntime:
         Example:
 
             def observer(event):
-                print(event.effect, event.rule_id)
+                print(event.effect, event.matched_rule)
 
             runtime.set_decision_observer(observer)
         """
@@ -298,8 +298,57 @@ class ActraRuntime:
         )
 
         self._decision_observer(event)
+
+    def _bind_arguments(self, func: Callable, args: Tuple, kwargs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Bind positional and keyword arguments to function parameters.
+
+        Returns a dictionary mapping parameter names to values.
+        """
+        if func is None:
+            return dict(kwargs)
+        
+        sig = inspect.signature(func)
+        bound = sig.bind_partial(*args, **kwargs)
+        bound.apply_defaults()
+        return dict(bound.arguments)
+    
+    def allow(self, action_type: str, ctx: Context = None, **fields) -> bool:
+        """
+        Convenience helper that returns True if the policy allows the action.
+        """
+        action = self.action(action_type, **fields)
+        decision = self.evaluate(action, ctx)
+
+        return decision.get("effect") == "allow"
+    
+    def block(self, action_type: str, ctx: Context = None, **fields) -> bool:
+        """
+        Convenience helper that returns True if the policy blocks the action.
+        """
+
+        action = self.action(action_type, **fields)
+        decision = self.evaluate(action, ctx)
+
+        return decision.get("effect") == "block"
     
     # Action construction
+    def action(self, action_type: str, **fields) -> Action:
+        """
+        Construct a policy action using runtime schema validation.
+
+        This helper is intended for direct programmatic policy checks
+        without needing a Python function signature.
+
+        Example:
+
+        runtime.action("deploy", env="prod")
+        """
+
+        return {
+            "type": action_type,
+            **fields
+        }
 
     def build_action(self, 
                      action_type: str,
@@ -323,7 +372,27 @@ class ActraRuntime:
         This prevents internal parameters (such as request context,
         framework metadata, etc.) from leaking into the policy engine
 
+        The following is resolution priority :
+        1. action_builder override
+        2. runtime action_resolver override
+        3. explicit fields parameter
+        4. function signature filtering
+            4.1 Refer schema
+        5. fallback kwargs
+
         Args:
+            action_type:
+                Logical action name used for policy evaluation
+
+            args:
+                Positional arguments supplied to the function
+
+            kwargs:
+                Keyword arguments supplied to the function
+
+            ctx:
+                Optional execution context used by resolvers
+            
             func:
                 Optional Function whose signature defines the allowed action fields.
                 The function is **not executed**. It is only inspected to
@@ -336,18 +405,6 @@ class ActraRuntime:
                 Integrations that do not have a handler function
                 (for example APIs, MCP tools, message queues) may
                 pass `None`.
-
-            action_type:
-                Logical action name used for policy evaluation
-
-            args:
-                Positional arguments supplied to the function
-
-            kwargs:
-                Keyword arguments supplied to the function
-
-            ctx:
-                Optional execution context used by resolvers
 
             fields:
                 Optional list restricting which keyword arguments are
@@ -376,14 +433,36 @@ class ActraRuntime:
             # Default: include kwargs but ignore internal parameters
             if func:
                 sig = inspect.signature(func)
-                allowed_fields = set(sig.parameters)
+                func_fields = set(sig.parameters)
+                
+                schema_fields = None
+                schema = self.policy._schema
+
+                if schema:
+                    actions = schema.get("actions", {})
+                    action_schema = actions.get(action_type)
+                    if action_schema:
+                        schema_fields = set(action_schema.get("fields", {}).keys())
+
+                if schema_fields:
+                    allowed_fields = func_fields & schema_fields
+                else:
+                    allowed_fields = func_fields
+
+                if args:    
+                    bound = sig.bind_partial(*args, **kwargs)
+                    bound.apply_defaults()
+                    bound_args = dict(bound.arguments)
+                else:
+                    bound_args = dict(kwargs)
+
                 action_fields = {
                     k: v
-                    for k, v in kwargs.items()
+                    for k, v in bound_args.items()
                     if k in allowed_fields
                 }
             else:
-                # No function available — trust provided kwargs
+                # No function available — trust provided kwargs API/MCP/Queue etc
                 action_fields = dict(kwargs)
         return {
             "type": action_type,
@@ -442,12 +521,18 @@ class ActraRuntime:
 
         This method is used internally by the `admit` decorator
         """
-        ctx = self.resolve_context(args, kwargs)
-        act = self.resolve_action_type(func, args, kwargs, action_type)
+        bound_args = self._bind_arguments(func, args, kwargs)
+        ctx = self.resolve_context(args, bound_args)
+        
+        # RULE:
+        # Once _bind_arguments() is called,
+        # positional args must not be used again.
+        #         
+        act = self.resolve_action_type(func, args, bound_args, action_type)
         action = self.build_action(
             act,
-            args,
-            kwargs,
+            (),         #Positional args no more needed
+            bound_args,
             ctx,
             func=func,
             fields=fields,
@@ -492,20 +577,31 @@ class ActraRuntime:
         context = self.build_context(action, ctx)
         return self.policy.explain(context)
     
-    def explain_call(self, func: Callable, *args, **kwargs) -> Decision:
+    def explain_call(
+        self,
+        func: Callable,
+        *args,
+        action_type: Optional[str] = None,
+        ctx: Optional[Any] = None,
+        **kwargs
+    ) -> Decision:
         """
         Explain the policy decision for a function call without executing it.
 
         This helper reconstructs the policy evaluation flow used by the
         `@runtime.admit` decorator and prints a human-readable explanation
-        of the decision.
+        of the resulting decision.
 
-        It is particularly useful for:
+        Unlike the decorator, this method **does not execute the function**.
+        It only simulates the policy evaluation using the provided inputs.
+
+        This is particularly useful for:
 
             - debugging policy behavior
             - understanding why a rule triggered
             - testing policy inputs interactively
             - verifying runtime resolvers
+            - exploring policy decisions without modifying application code
 
         The method performs the following steps:
 
@@ -515,14 +611,46 @@ class ActraRuntime:
             4. Construct the full evaluation context
             5. Invoke `Policy.explain()` to display the decision
 
-        Unlike the decorator, this method does not execute the function.
+        Action Type Resolution
+        ----------------------
+
+        The action type used for evaluation is determined in the following order:
+
+            1. Explicit `action_type` provided to `explain_call`
+            2. A configured `action_type_resolver`
+            3. The function name
+
+        This allows `explain_call` to work even when the function name does not
+        match the action name defined in the schema
 
         Args:
             func:
-                The function protected by Actra admission control.
+                The function associated with the action being evaluated.
+                The function is **not executed**. It is only inspected to
+                determine the action structure
 
             *args:
-                Positional arguments that would be passed to the function.
+                Positional arguments that would be passed to the function
+
+            action_type:
+                Optional explicit action name used for policy evaluation
+                This is useful when the function name differs from the
+                action defined in the schema
+            
+            ctx:
+                Optional execution context object used by runtime resolvers
+                
+                The context is passed to the configured actor and snapshot
+                resolvers to construct the evaluation context
+
+                Example:
+
+                    runtime.set_actor_resolver(
+                        lambda ctx: {"role": ctx.role}
+                    )
+
+                If not provided explicitly, Actra will attempt to resolve
+                the context from the function arguments.
 
             **kwargs:
                 Keyword arguments that would be passed to the function.
@@ -533,6 +661,17 @@ class ActraRuntime:
         Example:
 
             runtime.explain_call(refund, amount=1500)
+
+        Example with explicit action mapping:
+
+            runtime.explain_call(
+                scale,
+                action_type="scale_service",
+                service="search-api",
+                replicas=20,
+                environment="staging",
+                ctx=operator
+            )
 
         Example output:
 
@@ -551,18 +690,27 @@ class ActraRuntime:
 
             Result:
                 effect: block
-                rule_id: block_large_refund
+                matched_rule: block_large_refund
         """
 
-        ctx = self.resolve_context(args, kwargs)
-        act = self.resolve_action_type(func, args, kwargs, None)
+        bound_args = self._bind_arguments(func, args, kwargs)
+
+        if ctx is None:
+            ctx = self.resolve_context(args, bound_args)
+        
+        # RULE:
+        # Once _bind_arguments() is called,
+        # positional args must not be used again.
+        #   
+
+        act = self.resolve_action_type(func, args, bound_args, action_type)
 
         action = self.build_action(
-            func,
             act,
-            args,
-            kwargs,
-            ctx
+            (),         #Positional args no more needed
+            bound_args,
+            ctx,
+            func=func
         )
 
         return self.explain(action, ctx)

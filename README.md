@@ -1,216 +1,234 @@
 # Actra
 
-Deterministic admission control engine for state-changing operations in automated and agentic systems.
+[![PyPI version](https://img.shields.io/pypi/v/actra.svg)](https://pypi.org/project/actra/)
+[![PyPI downloads](https://img.shields.io/pypi/dm/actra)](https://pypi.org/project/actra/)
 
-Actra compiles declarative policy definitions into a validated,
-immutable intermediate representation (IR) that can be evaluated
-efficiently against runtime inputs.
+**Action Admission Control for Automated Systems**
 
-It is designed for systems that require explicit, reproducible control
-over mutations - including API gateways, background workers,
-agentic runtimes and automated service workflows.
+Deterministic policy engine that decides whether automated actions are **allowed before they execute**.
+
+Actra prevents unsafe operations in:
+
+* AI agents
+* APIs
+* automation systems
+* background workers
+* workflows
+
+Instead of embedding control logic in application code, Actra evaluates **external policies** before state-changing actions run.
+
+---
+
+![MCP Demo](doc/mcp-demo.gif)
+
+Agent attempted to call an MCP tool.
+
+Actra evaluated policy and **blocked the unsafe operation before execution**
 
 ---
 
 ## Why Actra?
 
-Modern systems often mix:
+Modern systems increasingly perform actions automatically:
 
-- Business logic
-- Authorization logic
-- Governance rules
-- Operational constraints
+* AI agents calling tools
+* workflow automation
+* API integrations
+* background jobs
 
-This leads to implicit, scattered mutation controls.
+These systems can trigger **powerful state-changing operations**, such as:
 
-Actra separates these concerns:
+* issuing refunds
+* deleting resources
+* sending payments
+* modifying infrastructure
 
-1. **Schema** defines allowed structure.
-2. **Policy** defines decision logic.
-3. **Governance** defines organizational constraints.
-4. **Compiler** validates everything upfront.
-5. **Engine** performs deterministic evaluation at runtime.
-
-All semantic validation happens at compile time.
-Runtime evaluation performs no structural checks.
-
----
-
-## Core Design Principles
-
-- Deterministic evaluation
-- Strict compile-time validation
-- First-match-wins rule semantics
-- Default allow (unless explicitly blocked)
-- No unsafe Rust
-- Runtime-agnostic core
-
----
-
-## Applicable Systems
-
-Actra is designed for systems that perform controlled mutations, including:
-
-- Agentic AI runtimes
-- Tool-executing LLM systems
-- Automation pipelines
-- Workflow engines
-- API gateways
-- State mutation services
-
-It is particularly relevant for:
-- Agent frameworks such as OpenClaw
-- Systems implementing the Model Context Protocol (MCP)
-- Automated remediation systems
-- Infrastructure orchestration engines
-
-In these environments, LLMs or automated processes may attempt
-state-changing operations. Actra provides a deterministic,
-compile-time validated control layer in front of those mutations.
-
-It does not replace orchestration logic or workflow execution.
-It acts as an explicit mutation admission boundary between
-decision-making systems and state-changing operations.
-
-Typical embedding points include:
-
-- Agent execution runtimes
-- Tool invocation layers
-- MCP-based tool servers
-- Background automation workers
-- API request pipelines
-
----
-
-## Example (Node.js)
-
-```js
-const { Actra } = require('./index')
-
-const schema = `
-version: 1
-actions:
-  delete_user:
-    fields:
-      type: string
-      user_id: string
-actor:
-  fields:
-    role: string
-snapshot:
-  fields:
-    account_tier: string
-`
-
-const policy = `
-version: 1
-rules:
-  - id: block_non_admin_delete
-    scope:
-      action: delete_user
-    when:
-      subject:
-        domain: actor
-        field: role
-      operator: equals
-      value:
-        literal: "admin"
-    effect: block
-`
-
-const actra = new Actra(schema, policy)
-
-const result = actra.evaluate({
-  action: { type: "delete_user", user_id: "123" },
-  actor: { role: "user" },
-  snapshot: {}
-})
-
-console.log(result)
-// { effect: "allow", matched_rule: "" }
-```
-
-## Example (Python)
+Today these controls often live inside application code:
 
 ```python
-from actra import Actra
+if amount > 1000:
+    raise Exception("Refund too large")
+```
 
-schema = """
-version: 1
-actions:
-  update_account:
-    fields:
-      type: string
-      account_id: string
-actor:
-  fields:
-    role: string
-snapshot:
-  fields:
-    region: string
-"""
+This creates problems:
 
-policy = """
-version: 1
+* rules duplicated across services
+* difficult to audit behavior
+* policy changes require redeploys
+* automation becomes risky
+
+Actra moves these decisions into **deterministic external policies evaluated before the action executes**.
+
+---
+
+## 20-Second Example
+
+```python
+@actra.admit()
+def refund(amount):
+    ...
+```
+
+The rule lives in policy:
+
+```yaml
 rules:
-  - id: block_non_admin
-    scope:
-      action: update_account
+  - id: block_large_refund
     when:
       subject:
-        domain: actor
-        field: role
-      operator: equals
+        domain: action
+        field: amount
+      operator: greater_than
       value:
-        literal: "admin"
+        literal: 1000
     effect: block
-"""
-
-actra = Actra(schema, policy)
-
-result = actra.evaluate({
-    "action": {"type": "update_account", "account_id": "A1"},
-    "actor": {"role": "user"},
-    "snapshot": {}
-})
-
-print(result)
 ```
 
-## Governance Layer
+```markdown
+Result:
 
-Actra includes an optional governance DSL that allows higher-order constraints on policies:
+refund(200)   > allowed  
+refund(1500)  > blocked by policy
+```
 
-- Require certain rules to exist
-- Restrict allowed fields
-- Limit rule counts
-- Forbid specific patterns
+Actra evaluates the policy **before the function executes** and blocks refunds greater than 1000.
 
-Governance validation runs before compilation and can reject otherwise valid policies.
+---
 
-Architecture
+## Installation
+
+```bash
+pip install actra
+```
+
+See the **examples/** directory for quick start examples.
+
+---
+
+## Architecture
+
+Actra evaluates policies **before operations execute**.
 
 ```mermaid
-flowchart TD
-    A[Schema - YAML]
-    B[Policy AST - YAML]
-    C[Governance Validation - Optional]
-    D[Compiler]
-    E[Compiled IR]
-    F[Evaluation Engine - Runtime]
+flowchart LR
 
-    A --> B --> C --> D --> E --> F
+A[Application / Agent / API] --> B[Action Request]
+
+B --> C[Actra Admission Control]
+
+C --> D[Schema]
+C --> E[Policies]
+C --> F[Governance optional]
+C --> G[Runtime Context]
+
+G --> G1[Actor]
+G --> G2[Action]
+G --> G3[Snapshot]
+
+C --> H{Decision}
+
+H -->|Allow| I[Execute Operation]
+H -->|Block| J[Operation Prevented]
 ```
 
-The evaluation engine operates only on validated IR.
-No dynamic validation occurs at runtime.
+---
 
-## Status
+## Example Use Cases
 
-Actra is currently in early foundation stage (v0.1.x).
+Actra can control many automated operations.
 
-Core architecture is stable.
-Public API may evolve as the DSL matures.
+### AI Agents
+
+* restrict tool execution
+* prevent critical infrastructure changes
+* enforce safety policies
+
+### APIs
+
+* block large refunds
+* prevent destructive operations
+* enforce safety checks
+
+### Automation
+
+* enforce workflow rules
+* restrict financial operations
+* require approval thresholds
+
+### Infrastructure
+
+* prevent destructive changes
+* enforce safe deployment policies
+
+---
+
+## SDKs
+
+Actra supports multiple runtimes.
+
+| Runtime | Status       |
+| ------- | ------------ |
+| Python  | Available    |
+| Node.js | WIP          |
+| Rust    | Core runtime |
+| WASM    | Planned      |
+| Go      | Planned      |
+
+---
+
+## Actra vs OPA vs Cedar
+
+| Feature           | Actra                            | OPA                            | Cedar                         |
+| ----------------- | -------------------------------- | ------------------------------ | ----------------------------- |
+| Primary purpose   | Admission control for operations | General policy engine          | Authorization policy language |
+| Evaluation timing | **Before executing actions**     | Usually request-time decisions | Authorization decisions       |
+| Integration model | Function / action enforcement    | API / sidecar / middleware     | Service authorization         |
+| Policy style      | Structured YAML rules            | Rego language                  | Cedar language                |
+| Determinism focus | Strong                           | Moderate                       | Strong                        |
+| Target systems    | Agents, automation, APIs         | Infrastructure, Kubernetes     | Application authorization     |
+| Typical use case  | Block unsafe operations          | Policy enforcement in infra    | Access control                |
+
+### Positioning
+
+Actra focuses on **controlling actions before they execute**, especially in automated or agent-driven systems.
+
+OPA and Cedar focus primarily on **authorization decisions**, such as:
+
+* “Can user X access resource Y?”
+
+Actra focuses on **admission control for mutations**, such as:
+
+* Should this refund execute?
+* Should an agent run this tool?
+* Should this workflow step proceed?
+
+### Example Scenarios
+
+| Scenario                                         | Best Tool |
+| ------------------------------------------------ | --------- |
+| Can a user access a document?                    | Cedar     |
+| Can a service access an API?                     | OPA       |
+| Should an automated system execute an operation? | Actra     |
+
+
+---
+
+## Documentation
+
+Full documentation coming soon.
+
+Refer to the **examples** folder for detailed usage examples.
+
+Planned documentation sections:
+
+* policy language
+* MCP integration
+* agent safety
+* runtime architecture
+* advanced policy patterns
+
+---
 
 ## License
-This project is licensed under the Apache License 2.0 - see the LICENSE file for details.
+
+Apache 2.0

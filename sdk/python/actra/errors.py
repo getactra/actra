@@ -132,3 +132,15 @@ class ActraPolicyError(ActraError):
             f"action_type={self.action_type!r}, "
             f"decision={self.decision!r})"
         )
+
+class ActraSchemaError(ActraError):
+    """
+    Raised when Actra schema YAML cannot be parsed.
+
+    This typically indicates invalid YAML syntax or
+    an incorrectly formatted schema definition.
+    """
+
+    def __init__(self, message, original_error=None):
+        self.original_error = original_error
+        super().__init__(message)

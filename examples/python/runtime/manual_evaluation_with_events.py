@@ -52,11 +52,11 @@ runtime.set_decision_observer(observer)
 
 
 action = runtime.build_action(
-    func=lambda: None,
     action_type="deploy",
     args=(),
     kwargs={"env": "prod"},
-    ctx=None
+    ctx=None,
+    func=None,
 )
 
 runtime.evaluate(action)

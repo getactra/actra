@@ -1,7 +1,8 @@
 # Actra Python SDK
 
-Deterministic admission control and policy evaluation for state-changing
-operations in automated and agentic systems.
+**Action Admission Control for Automated Systems**
+
+Deterministic policy engine that decides whether automated actions are **allowed before they execute**.
 
 The **Actra Python SDK** provides a simple interface for loading policies and evaluating decisions using the Actra engine written in Rust.
 
@@ -31,115 +32,37 @@ The package includes a compiled Rust engine, so no Rust toolchain is required du
 ## Quick Start
 
 ```python
-import actra
-from actra import ActraRuntime
-
-policy = actra.load_policy_from_file(
-    "schema.yaml",
-    "policy.yaml"
-)
-
-runtime = ActraRuntime(policy)
-
-runtime.set_actor_resolver(lambda ctx: {"role": "admin"})
-runtime.set_snapshot_resolver(lambda ctx: {})
-
-@runtime.admit()
-def deploy():
-    print("Deployment executed")
-
-deploy()
-
+@actra.admit()
+def refund(amount):
+    ...
 ```
+
+The rule lives in policy:
+
+```yaml
+rules:
+  - id: block_large_refund
+    when:
+      subject:
+        domain: action
+        field: amount
+      operator: greater_than
+      value:
+        literal: 1000
+    effect: block
+```
+
+```markdown
+Result:
+
+refund(200)   > allowed  
+refund(1500)  > blocked by policy
+```
+
+Actra evaluates the policy **before the function executes** and blocks refunds greater than 1000.
 
 ---
 
-## Loading Policies
-
-### From Files
-
-```python
-import actra
-
-policy = actra.load_policy_from_file(
-    "schema.yaml",
-    "policy.yaml"
-)
-```
-
-Optional governance configuration can also be provided:
-
-```python
-policy = actra.load_policy_from_file(
-    "schema.yaml",
-    "policy.yaml",
-    "governance.yaml"
-)
-```
-
----
-
-### From Strings
-
-Useful for tests or dynamic environments.
-
-```python
-policy = actra.load_policy_from_string(
-    schema_yaml,
-    policy_yaml
-)
-```
-
----
-
-## Evaluating Decisions
-
-Policies evaluate a request context.
-
-```python
-decision = policy.evaluate({
-    "action": {...},
-    "actor": {...},
-    "snapshot": {...}
-})
-```
-
-The context typically contains:
-
-| Field      | Description                  |
-| ---------- | ---------------------------- |
-| `action`   | operation being requested    |
-| `actor`    | entity requesting the action |
-| `snapshot` | current system state         |
-
----
-
-## Policy Hash
-
-Every compiled policy has a deterministic hash.
-
-```python
-policy.policy_hash()
-```
-
-This is useful for:
-
-* auditing
-* verifying policy consistency
-
----
-
-## Engine Version
-
-Retrieve the underlying compiler version:
-
-```python
-import actra
-
-actra.Actra.compiler_version()
-```
-
----
 
 ## Design Goals
 

@@ -1,8 +1,11 @@
 from pathlib import Path
 from typing import Optional
+import yaml
+
 # Rust binding
 from .actra import PyActra as _RustActra
 from .types import Action, Actor, Snapshot, Decision, ActionInput, PathType
+from .errors import ActraSchemaError
 
 class Policy:
     """
@@ -29,7 +32,7 @@ class Policy:
     Policies are deterministic and side-effect free.
     """
 
-    def __init__(self, engine: _RustActra):
+    def __init__(self, engine: _RustActra, schema_yaml: Optional[str] = None):
         """
         Internal constructor.
 
@@ -41,6 +44,10 @@ class Policy:
             Actra.from_directory(...)
         """
         self._engine = engine
+        try:
+            self._schema = yaml.safe_load(schema_yaml) if schema_yaml else None
+        except yaml.YAMLError as e:
+            raise ActraSchemaError("Invalid Actra schema YAML") from e
 
     # ------------------------------------------------------------------
     # Runtime API
@@ -278,7 +285,7 @@ class Actra:
             A compiled `Policy` object ready for evaluation.
         """
         engine = _RustActra(schema_yaml, policy_yaml, governance_yaml)
-        return Policy(engine)
+        return Policy(engine, schema_yaml)
     
     @staticmethod
     def from_files(
@@ -321,7 +328,7 @@ class Actra:
             governance_yaml = governance_file.read_text(encoding="utf-8")
 
         engine = _RustActra(schema_yaml, policy_yaml, governance_yaml)
-        return Policy(engine)
+        return Policy(engine, schema_yaml)
 
     @staticmethod
     def compiler_version() -> str:
