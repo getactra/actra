@@ -19,7 +19,7 @@ Instead of embedding control logic in application code, Actra evaluates **extern
 
 ---
 
-![MCP Demo](docs/mcp-demo.gif)
+![MCP Demo](doc/mcp-demo.gif)
 
 Agent attempted to call an MCP tool.
 
