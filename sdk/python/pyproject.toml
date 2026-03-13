@@ -31,7 +31,9 @@ classifiers = [
   "Topic :: Security"
 ]
 
-dependencies = []
+dependencies = [
+    "PyYAML>=6.0.2"
+]
 
 [project.urls]
 Homepage = "https://github.com/getactra/actra"
