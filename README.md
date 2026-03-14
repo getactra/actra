@@ -1,11 +1,17 @@
-# Actra
-
 [![PyPI version](https://img.shields.io/pypi/v/actra.svg)](https://pypi.org/project/actra/)
 [![PyPI downloads](https://img.shields.io/pypi/dm/actra)](https://pypi.org/project/actra/)
+[![License](https://img.shields.io/github/license/getactra/actra)](https://github.com/getactra/actra/blob/main/LICENSE)
 
-**Action Admission Control for Automated Systems**
+# Actra
+Decision Control
 
-Deterministic policy engine that decides whether automated actions are **allowed before they execute**.
+**Admission Control for Agentic & Automated Systems**
+
+Evaluate decisions before operations execute. 
+Prevent unsafe actions and enforce safe policies across APIs, services, automation pipelines, and AI agents.
+
+Actra evaluates policies **before operations execute**, allowing or blocking actions triggered by APIs, automation systems, or AI agents.
+
 
 Actra prevents unsafe operations in:
 
@@ -19,11 +25,13 @@ Instead of embedding control logic in application code, Actra evaluates **extern
 
 ---
 
+## See Actra in Action
+
 ![MCP Demo](doc/mcp-demo.gif)
 
-Agent attempted to call an MCP tool.
+An AI agent attempted to call an MCP tool.
 
-Actra evaluated policy and **blocked the unsafe operation before execution**
+Actra evaluated policy and **blocked the unsafe operation before execution**.
 
 ---
 
@@ -57,7 +65,7 @@ This creates problems:
 * policy changes require redeploys
 * automation becomes risky
 
-Actra moves these decisions into **deterministic external policies evaluated before the action executes**.
+Actra moves these decisions into **deterministic external policies evaluated before actions execute**.
 
 ---
 
@@ -74,6 +82,8 @@ The rule lives in policy:
 ```yaml
 rules:
   - id: block_large_refund
+    scope:
+      action: refund
     when:
       subject:
         domain: action
@@ -84,16 +94,64 @@ rules:
     effect: block
 ```
 
-```markdown
 Result:
 
-refund(200)   > allowed  
-refund(1500)  > blocked by policy
+```markdown
+refund(200)   -> allowed  
+refund(1500)  -> blocked by policy
 ```
 
 Actra evaluates the policy **before the function executes** and blocks refunds greater than 1000.
 
 ---
+
+## Key Concepts
+
+Actra evaluates policies using a small set of core concepts.
+
+**Action**  
+The operation being requested.  
+Example: `refund`, `delete_user`, `deploy_service`.
+
+**Actor**  
+The identity performing the action (user, service, or agent).
+
+**Snapshot**  
+External system state used during evaluation.  
+Example: account status, fraud flags, environment.
+
+**Policy**  
+Rules that determine whether an action should be allowed or blocked.
+
+**Governance**  
+Optional policies that control how operational policies themselves can be defined or modified.
+
+**Admission Control**  
+Actra evaluates policies **before the action executes**, allowing or blocking the operation.
+
+---
+
+## Governance
+
+Actra optionally supports **governance policies**.
+
+Governance policies validate operational policies at compile time,
+ensuring that critical safety rules cannot be removed or weakened.
+
+Governance can enforce constraints such as:
+
+* requiring specific safety rules to exist
+* preventing unsafe rule patterns
+* limiting the number of certain rule types
+* restricting which fields policies may reference
+* applying constraints only to specific actions
+
+This allows platform or security teams to enforce **organization-wide
+policy standards** across services.
+
+Governance policies operate **above normal admission policies**,
+providing a control layer that validates policies themselves before
+they are accepted.
 
 ## Installation
 
@@ -112,24 +170,36 @@ Actra evaluates policies **before operations execute**.
 ```mermaid
 flowchart LR
 
-A[Application / Agent / API] --> B[Action Request]
+subgraph Governance Layer
+G[Governance Policies]
+end
 
-B --> C[Actra Admission Control]
+subgraph Policy Layer
+S[Schema]
+P[Operational Policies]
+end
 
-C --> D[Schema]
-C --> E[Policies]
-C --> F[Governance optional]
-C --> G[Runtime Context]
+subgraph Runtime Layer
+A[Application / Agent / API]
+C[Actra Admission Control]
+R[Runtime Context]
+end
 
-G --> G1[Actor]
-G --> G2[Action]
-G --> G3[Snapshot]
+A --> C
+R --> C
 
-C --> H{Decision}
+S --> C
+P --> C
 
-H -->|Allow| I[Execute Operation]
-H -->|Block| J[Operation Prevented]
+G --> P
+
+C --> D{Decision}
+
+D -->|Allow| E[Execute Operation]
+D -->|Block| F[Operation Prevented]
 ```
+
+Schema defines the structure of actions, actors, and snapshots used during policy evaluation.
 
 ---
 
@@ -178,15 +248,16 @@ Actra supports multiple runtimes.
 
 ## Actra vs OPA vs Cedar
 
-| Feature           | Actra                            | OPA                            | Cedar                         |
-| ----------------- | -------------------------------- | ------------------------------ | ----------------------------- |
-| Primary purpose   | Admission control for operations | General policy engine          | Authorization policy language |
-| Evaluation timing | **Before executing actions**     | Usually request-time decisions | Authorization decisions       |
-| Integration model | Function / action enforcement    | API / sidecar / middleware     | Service authorization         |
-| Policy style      | Structured YAML rules            | Rego language                  | Cedar language                |
-| Determinism focus | Strong                           | Moderate                       | Strong                        |
-| Target systems    | Agents, automation, APIs         | Infrastructure, Kubernetes     | Application authorization     |
-| Typical use case  | Block unsafe operations          | Policy enforcement in infra    | Access control                |
+| Feature | Actra | OPA | Cedar |
+|-------|------|-----|------|
+| Primary purpose | Decision control for operations | General policy engine | Authorization policy language |
+| Evaluation timing | **Before executing actions** | Usually request-time decisions | Authorization decisions |
+| Integration model | Function / action enforcement | API / sidecar / middleware | Service authorization |
+| Policy style | Structured YAML rules | Rego language | Cedar language |
+| Governance support | **Built-in policy governance** | External tooling | Limited |
+| Determinism focus | Strong | Moderate | Strong |
+| Target systems | Agents, automation, APIs | Infrastructure, Kubernetes | Application authorization |
+| Typical use case | Control automated operations | Policy enforcement in infra | Access control |
 
 ### Positioning
 
@@ -202,13 +273,16 @@ Actra focuses on **admission control for mutations**, such as:
 * Should an agent run this tool?
 * Should this workflow step proceed?
 
+Actra also supports **governance policies**, which validate operational policies at compile time to ensure safety rules cannot be removed or weakened.
+
 ### Example Scenarios
 
-| Scenario                                         | Best Tool |
-| ------------------------------------------------ | --------- |
-| Can a user access a document?                    | Cedar     |
-| Can a service access an API?                     | OPA       |
-| Should an automated system execute an operation? | Actra     |
+| Scenario | Best Tool |
+|--------|----------|
+| Can a user access a document? | Cedar |
+| Can a service access an API? | OPA |
+| Should an automated system execute an operation? | Actra |
+| Should policies themselves follow safety standards? | Actra |
 
 
 ---
