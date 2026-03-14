@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: Actra
+message: "If you use Actra in research or projects, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: Saxena
+    given-names: Amit
+repository-code: https://github.com/getactra/actra
+url: https://github.com/getactra/actra
+license: Apache-2.0
+abstract: >
+  Actra is an open-source decision control system that evaluates policies
+  before operations execute. It provides admission control and policy
+  governance for automated systems, APIs, workflows, and AI agents.
+keywords:
+  - policy engine
+  - admission control
+  - decision control
+  - policy governance
+  - AI agent safety
+  - automation guardrails
+  - runtime policy enforcement
+version: 0.5.0
+date-released: 2026-03-13
