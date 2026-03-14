@@ -537,3 +537,80 @@ governance:
 
     assert!(result.is_ok());
 }
+
+
+#[test]
+fn governance_skipped_when_target_action_not_present() {
+    let schema_yaml = r#"
+version: 1
+
+actions:
+  refund:
+    fields:
+      amount: number
+  chargeback:
+    fields:
+      amount: number
+
+actor:
+  fields:
+    role: string
+
+snapshot:
+  fields:
+    fraud_flag: boolean
+"#;
+
+    let schema_ast: actra::schema::SchemaAst =
+        serde_yaml::from_str(schema_yaml).unwrap();
+    let schema = actra::schema::Schema::from_ast(schema_ast);
+
+    // Policy only defines chargeback rule
+    let policy_yaml = r#"
+version: 1
+
+rules:
+  - id: allow_chargeback
+    scope:
+      action: chargeback
+    when:
+      subject:
+        domain: action
+        field: amount
+      operator: greater_than
+      value:
+        literal: 10
+    effect: allow
+"#;
+
+    let policy: actra::ast::PolicyAst =
+        serde_yaml::from_str(policy_yaml).unwrap();
+
+    // Governance rule only applies to refund
+    let governance_yaml = r#"
+version: 1
+
+governance:
+  rules:
+    - id: refund_must_have_block
+      applies_to:
+        actions:
+          - refund
+      select:
+        where:
+          effect: block
+      must:
+        min_count: 1
+      error: "Refund policies must include a block rule"
+"#;
+
+    let governance: actra::governance::GovernanceAst =
+        serde_yaml::from_str(governance_yaml).unwrap();
+
+    // Governance rule should be skipped because
+    // policy does not contain any refund rules
+    let result =
+        actra::compiler::compile_with_governance(&schema, policy, &governance);
+
+    assert!(result.is_ok());
+}
