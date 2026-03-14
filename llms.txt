@@ -1,0 +1,46 @@
+Actra
+
+Actra is an open-source decision control system.
+
+It evaluates policies before operations execute, allowing or blocking
+actions triggered by APIs, automation systems, background workers,
+or AI agents.
+
+Core capabilities:
+
+- Admission control for operations
+- Deterministic policy evaluation
+- Policy governance
+- Runtime enforcement
+- Support for automated and agentic systems
+
+Key concepts:
+
+Action   : the operation being requested
+Actor    : the identity performing the action
+Snapshot : external system state used for evaluation
+Policy   : rules that allow or block operations
+Governance : policies that validate operational policies
+
+Typical use cases:
+
+- AI agent guardrails
+- API safety controls
+- automation workflow protection
+- infrastructure safety policies
+- financial operation safeguards
+
+Repository structure:
+
+README.md              Project overview
+doc/                   Conceptual documentation
+examples/              Runnable examples
+
+Primary concepts:
+
+Decision Control
+Admission Control
+Policy Governance
+
+Actra evaluates policies before actions execute and prevents unsafe
+operations across automated systems.
