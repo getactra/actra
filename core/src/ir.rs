@@ -14,6 +14,7 @@
 
 use std::collections::HashMap;
 use sha2::{Digest, Sha256};
+use serde::{Deserialize, Serialize};
 
 /// Fully compiled and validated policy.
 ///
@@ -97,7 +98,7 @@ pub enum ValueRef {
 /// Scalar values supported by the engine.
 ///
 /// These correspond to validated schema field types.
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum ScalarValue {
     String(String),
     Number(f64),

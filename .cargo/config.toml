@@ -6,3 +6,8 @@ rustflags = ["-C", "target-cpu=generic"]
 
 [target.aarch64-unknown-linux-gnu]
 rustflags = ["-C", "target-cpu=generic"]
+
+[target.wasm32-unknown-unknown]
+rustflags = [
+  "-C", "opt-level=z"
+]

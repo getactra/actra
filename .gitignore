@@ -33,3 +33,4 @@ venv_test
 wheelhouse
 ____*/
 ____*
+bindings/wasm/pkg/
