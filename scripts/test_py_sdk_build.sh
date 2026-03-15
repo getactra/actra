@@ -2,9 +2,9 @@
 set -euo pipefail
 
 echo "Cleaning previous builds..."
-#rm -rf target
-#rm -rf venv_test
-#rm -rf sdk/python/target wheelhouse
+rm -rf target
+rm -rf venv_test
+rm -rf sdk/python/target wheelhouse
 
 echo "Creating temporary Python virtualenv..."
 python3 -m venv venv_test
