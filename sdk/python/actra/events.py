@@ -40,7 +40,7 @@ class DecisionEvent:
 
     @property
     def effect(self) -> str:
-        """Return policy effect (`allow` or `block`)"""
+        """Return policy effect (`allow`, `block` or `require_approval`)"""
         return self.decision.get("effect")
 
     @property
@@ -57,3 +57,4 @@ class DecisionEvent:
     def action_type(self) -> str:
         """Return the evaluated action type."""
         return self.action.get("type", "unknown")
+    

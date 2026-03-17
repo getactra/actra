@@ -1,0 +1,41 @@
+{
+  "name": "@actra/server",
+  "version": "0.1.0",
+  "description": "Actra JavaScript SDK for server and edge runtimes",
+  "type": "module",
+  "dependencies": {
+    "@actra/common": "file:../common",
+    "fs": "^0.0.1-security"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "pkg"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "actra",
+    "policy",
+    "authorization",
+    "admission-control",
+    "ai-safety"
+  ],
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.0"
+  }
+}

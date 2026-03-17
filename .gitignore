@@ -34,3 +34,6 @@ wheelhouse
 ____*/
 ____*
 bindings/wasm/pkg/
+sdk/js/server/pkg/
+sdk/js/server/dist/
+sdk/js/web/pkg/

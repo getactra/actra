@@ -96,6 +96,14 @@ class ActraRuntime:
             runtime.set_decision_observer(observer)
         """
         self._decision_observer = fn
+    
+    def has_decision_observer(self) -> bool:
+        """
+        Returns True if a decision observer is registered.
+
+        Useful to avoid unnecessary event construction in high-throughput scenarios.
+        """
+        return self._decision_observer is not None
 
     def set_actor_resolver(self, fn: ActorResolver) -> None:
         """
@@ -737,7 +745,8 @@ class ActraRuntime:
 
         duration_ms = (time.perf_counter() - start) * 1000
 
-        self._emit_decision_event(decision, action, context, duration_ms)
+        if self.has_decision_observer:
+            self._emit_decision_event(decision, action, context, duration_ms)
 
         return decision
     

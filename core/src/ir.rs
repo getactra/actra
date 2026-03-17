@@ -99,6 +99,7 @@ pub enum ValueRef {
 ///
 /// These correspond to validated schema field types.
 #[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum ScalarValue {
     String(String),
     Number(f64),

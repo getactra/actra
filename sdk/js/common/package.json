@@ -1,0 +1,10 @@
+{
+  "name": "@actra/common",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared common utilities for Actra JavaScript SDKs",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false
+}
