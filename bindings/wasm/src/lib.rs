@@ -43,7 +43,7 @@ pub struct JsEvaluationOutput {
 ///
 /// The compiled policy is stored internally.  
 /// Evaluation operations are pure and deterministic.
-#[wasm_bindgen]
+#[wasm_bindgen (js_name = Actra)]
 pub struct Actra {
     compiled_policy: CompiledPolicy,
 }
@@ -132,8 +132,11 @@ impl Actra {
     #[wasm_bindgen]
     pub fn evaluate(&self, input: JsValue) -> Result<JsValue, JsValue> {
 
-        let js_input: JsEvaluationInput =
-            from_value(input)?;
+    let js_input: JsEvaluationInput =
+        from_value(input).map_err(|e| JsValue::from_str(&format!(
+            "Invalid evaluation input: {}",
+            e
+        )))?;
 
         let eval_input = EvaluationInput {
             action: js_input.action,

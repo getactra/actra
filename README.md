@@ -3,25 +3,36 @@
 [![License](https://img.shields.io/github/license/getactra/actra)](https://github.com/getactra/actra/blob/main/LICENSE)
 
 # Actra
-Decision Control
+### Decision Control for Software
 
-**Admission Control for Agentic & Automated Systems**
+![Actra Policy Enforced](https://img.shields.io/badge/Actra-Policy%20Enforced-16a34a?style=flat-square)
 
-Evaluate decisions before operations execute. 
-Prevent unsafe actions and enforce safe policies across APIs, services, automation pipelines, and AI agents.
+**Admission Control for Agentic and Automated Systems**
 
-Actra evaluates policies **before operations execute**, allowing or blocking actions triggered by APIs, automation systems, or AI agents.
+Actra introduces **Decision Control** — a runtime layer that evaluates policies **before operations execute**.
 
+It allows systems to **permit or block actions safely**, preventing unsafe operations triggered by AI agents, APIs & automation systems
 
-Actra prevents unsafe operations in:
+Instead of embedding control logic directly in application code, Actra evaluates **external policies** before state-changing actions run.
 
-* AI agents
-* APIs
-* automation systems
-* background workers
-* workflows
+## Where Actra applies
 
-Instead of embedding control logic in application code, Actra evaluates **external policies** before state-changing actions run.
+Actra protects operations in systems such as:
+
+- AI agents
+- APIs and services
+- automation pipelines
+- background workers
+- workflows and schedulers
+
+<!-- ### Runs Everywhere
+#### SDKs
+Python • JavaScript • CLI
+
+**Server**: Node • Bun • Deno
+**Edge**: Cloudflare Workers • AWS Lambda • Vercel Edge • Netlify Edge • Fastly Compute@Edge
+**Browser**: Web Browsers
+**WASM Runtimes:** Wasmtime • Wasmer -->
 
 ---
 
@@ -29,7 +40,7 @@ Instead of embedding control logic in application code, Actra evaluates **extern
 
 ![MCP Demo](doc/mcp-demo.gif)
 
-An AI agent attempted to call an MCP tool.
+### An AI agent attempted to call an MCP tool.
 
 Actra evaluated policy and **blocked the unsafe operation before execution**.
 
@@ -232,17 +243,41 @@ Actra can control many automated operations.
 
 ---
 
-## SDKs
+## Actra Platform Support
 
-Actra supports multiple runtimes.
+Actra runs across **server, edge, and browser environments**.
 
-| Runtime | Status       |
-| ------- | ------------ |
-| Python  | Available    |
-| Node.js | WIP          |
-| Rust    | Core runtime |
-| WASM    | Planned      |
-| Go      | Planned      |
+### SDKs and Engines.
+
+| SDK/Engine              |  Status    |
+| ---------------------- | ------------------- | 
+| Rust Core Engine       | Available (Publishing Pending) |
+| Python SDK             | Available |
+| JavaScript Runtime SDK | WIP       |
+| JavaScript Browser SDK | WIP     |
+| Go SDK                 | Planned |
+
+### JavaScript Runtime Compatibility
+
+| Runtime            | Status  |
+| ------------------ | --------|
+| Node.js            | WIP |
+| Bun                | WIP |
+| Cloudflare Workers | WIP |
+| AWS Lambda         | WIP |
+| Web Browsers       | WIP |
+| Deno                   | WIP |
+| Fastly Compute@Edge    | WIP |
+| Vercel Edge Runtime    | WIP |
+| Netlify Edge Functions | WIP |
+
+### Native WebAssembly Runtime Targets
+
+| Runtime  | Status  |
+| -------- | ------- |
+| Wasmtime | Planned |
+| Wasmer   | Planned |
+
 
 ---
 

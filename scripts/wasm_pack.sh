@@ -27,8 +27,8 @@ cargo install wasm-pack
 # 1. Browser build
 wasm-pack build bindings/wasm --target web --out-dir pkg/web --release
 
-# 2. Node build
-wasm-pack build bindings/wasm --target nodejs --out-dir pkg/all --release
+# 2. Server build
+wasm-pack build bindings/wasm --target nodejs --out-dir pkg/server --release
 
 # cargo install wasm-opt
 
@@ -51,3 +51,8 @@ wasm-opt -Oz \
   -o bindings/wasm/pkg/web/actra_wasm_bg.wasm \
   bindings/wasm/pkg/web/actra_wasm_bg.wasm
   
+cd sdk/js
+npm install
+npm run build
+
+#Publish
