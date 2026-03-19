@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <h3>Browser Test</h3>
+    <div id="output"></div>
+
+    <script type="module">
+        let wasm;
+        wasm = await import("../pkg/web/actra_wasm.js");
+        if (wasm.default) {
+            await wasm.default();
+        } else if (wasm.init) {
+            await wasm.init();
+        }
+        console.log("Actra WASM compiler version:", wasm.Actra.compiler_version());
+        
+        document.getElementById("output").innerHTML +=
+        `<p>Actra WASM compiler version: ${wasm.Actra.compiler_version()}</p>`;
+    </script>
+
+</body>
+
+</html>
