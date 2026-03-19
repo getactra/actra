@@ -29,6 +29,7 @@ wasm-pack build bindings/wasm --target web --out-dir pkg/web --release
 
 # 2. Server build
 wasm-pack build bindings/wasm --target nodejs --out-dir pkg/server --release
+wasm-pack build bindings/wasm --target bundler --out-dir pkg/server --release
 
 # cargo install wasm-opt
 
