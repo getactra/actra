@@ -36,7 +36,7 @@ const actra = new Actra(schema, policy)
 const result = actra.evaluate({
   action: { type: "delete" },
   actor: { role: "admin" },
-  snapshot: {}
+  snapshot: {fraud_flag:true}
 })
 
 console.log(result)
