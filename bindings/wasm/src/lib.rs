@@ -27,7 +27,7 @@ use actra::compiler_version as core_compiler_version;
 
 
 
-fn safe_exec<T, F>(f: F) -> WasmBuffer
+fn safe_exec<T, F>(f: F) -> u64
 where
     T: Serialize,
     F: FnOnce() -> Result<T, String>,
@@ -73,35 +73,45 @@ fn read_str(ptr: *const u8, len: usize, name: &str) -> Result<&str, String> {
     }
 }
 
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct WasmBuffer {
-    pub ptr: *mut u8,
-    pub len: usize,
+//wasm is 32 bit
+fn pack(ptr: *mut u8, len: usize) -> u64 {
+    ((ptr as u64) << 32) | (len as u64)
 }
 
-fn to_buffer(s: String) -> WasmBuffer {
+fn to_buffer(s: String) -> u64 {
     let mut bytes = s.into_bytes();
-    let buffer = WasmBuffer {
-        ptr: bytes.as_mut_ptr(),
-        len: bytes.len(),
-    };
-    std::mem::forget(bytes);
-    buffer
+    let len = bytes.len();
+
+    let mut full = Vec::with_capacity(8 + len);
+
+    full.extend_from_slice(&(len as u64).to_le_bytes());
+    full.append(&mut bytes);
+
+    let ptr = full.as_mut_ptr();
+
+    std::mem::forget(full);
+
+    pack(ptr, len + 8)
 }
 
 //To free allocated strings via WasmBuffer
 //Important contract at JS Layer
-/*function readWasmString(wasm, memory, buffer) {
-  const bytes = new Uint8Array(memory.buffer, buffer.ptr, buffer.len);
+//
+/*function readWasmString(wasm, memory, val) {
+  const ptr = Number(val >> 32n);
+  const totalLen = Number(val & 0xffffffffn);
+
+  // read actual string length
+  const lenView = new DataView(memory.buffer, ptr, 8);
+  const strLen = Number(lenView.getBigUint64(0, true));
+
+  const bytes = new Uint8Array(memory.buffer, ptr + 8, strLen);
   const str = new TextDecoder().decode(bytes);
 
-  //CRITICAL: free memory after reading
-  wasm.actra_string_free(buffer.ptr, buffer.len);
+  wasm.actra_string_free(ptr, totalLen);
 
   return str;
-}
-  
+} 
 //Usage example 
 const buffer = wasm.actra_create(
   schemaPtr, schemaLen,
@@ -116,14 +126,14 @@ const buffer = wasm.actra_policy_hash(instanceId);
 const hash = readWasmString(wasm, memory, buffer);
 */
 #[no_mangle]
-pub extern "C" fn actra_string_free(ptr: *mut u8, len: usize) {
-    if ptr.is_null() || len == 0 {
+pub extern "C" fn actra_string_free(ptr: *mut u8, total_len: usize) {
+    // len is len+8 with len prefix
+    if ptr.is_null() || total_len == 0 {
         return;
     }
 
     unsafe {
-        // Reconstruct and drop
-        let _ = Vec::from_raw_parts(ptr, len, len);
+        let _ = Vec::from_raw_parts(ptr, total_len, total_len);
     }
 }
 
@@ -173,7 +183,7 @@ pub extern "C" fn actra_create(
     policy_len: usize,
     gov_ptr: *const u8,
     gov_len: usize,
-) -> WasmBuffer {
+) -> u64 {
     safe_exec(|| {
 
         let schema_yaml = read_str(schema_ptr, schema_len, "schema")?;
@@ -214,7 +224,7 @@ pub extern "C" fn actra_evaluate(
     instance_id: i32,
     input_ptr: *const u8,
     input_len: usize,
-) -> WasmBuffer {
+) -> u64 {
 safe_exec(|| {
 
     if instance_id < 0 {
@@ -252,7 +262,7 @@ safe_exec(|| {
 
 
 #[no_mangle]
-pub extern "C" fn actra_policy_hash(instance_id: i32) -> WasmBuffer {
+pub extern "C" fn actra_policy_hash(instance_id: i32) -> u64 {
     safe_exec(|| {
     if instance_id < 0 {
         return Err("invalid instance_id".to_string());
@@ -272,7 +282,7 @@ pub extern "C" fn actra_policy_hash(instance_id: i32) -> WasmBuffer {
 }
 
 #[no_mangle]
-pub extern "C" fn actra_compiler_version() -> WasmBuffer {
+pub extern "C" fn actra_compiler_version() -> u64 {
     safe_exec(|| {
         Ok(core_compiler_version().to_string())
     })
@@ -305,13 +315,13 @@ pub enum WasmResponse<T> {
 }
 
 //JSON Return helper
-fn ok<T: Serialize>(data: T) -> WasmBuffer {
+fn ok<T: Serialize>(data: T) -> u64 {
     let res = WasmResponse::Ok { data };
     to_buffer(serde_json::to_string(&res).unwrap())
 }
 
 //JSON Return helper
-fn err(msg: String) -> WasmBuffer {
+fn err(msg: String) -> u64 {
     let res: WasmResponse<()> = WasmResponse::Err { error: msg };
     to_buffer(serde_json::to_string(&res).unwrap())
 }
