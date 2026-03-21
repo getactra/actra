@@ -2,27 +2,17 @@
   "name": "wasm-binding-test",
   "version": "1.0.0",
   "type": "module",
-  "files": [
-    "pkg"
-  ],
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:webpack": "webpack --config test/webpack/webpack.config.js",
     "test:webpack": "webpack serve --config test/webpack/webpack.config.js",
-    "test:node": "node test/test-node.mjs",
-    "test:bun": "bun test/test-bun.mjs",
-    "test:deno": "deno run --allow-read test/test-deno.ts",
-    "test:bundler": "node test/test-bundler.mjs",
+    "test:node": "node test/raw-test.mjs",
+    "test:bun": "bun test/raw-test.mjs",
+    "test:deno": "deno run --allow-read test/raw-test.mjs",
     "test:browser": "npx serve ."
   },
   "exports": {
-    ".": {
-      "types": "./pkg/node/actra_wasm.d.ts",
-      "node": "./pkg/node/actra_wasm.js",
-      "deno": "./pkg/deno/actra_wasm.js",
-      "browser": "./pkg/web/actra_wasm.js",
-      "worker": "./pkg/web/actra_wasm.js",
-      "default": "./pkg/bundler/actra_wasm.js"
-    }
+    ".": "./js/actra.mjs"
   },
   "devDependencies": {
     "html-webpack-plugin": "^5.6.6",

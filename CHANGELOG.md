@@ -1,3 +1,8 @@
+### v0.6.2 - 21 March 2026
+- updated wasm bindings for raw wasm abi
+- removed wasm bindgen
+- added raw tests for wasm - JS wrapper
+
 ### v0.6.1 - 19 March 2026
 - added wasm bindings for Node, Bun, Browser, Deno and Edge
 - Bug fix in wasm binding
