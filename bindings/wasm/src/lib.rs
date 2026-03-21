@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Mutex, OnceLock};
 use std::sync::Arc;
 use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::cell::RefCell;
+
 
 use actra::ast::PolicyAst;
 use actra::compiler::{compile_policy, compile_with_governance};
@@ -58,21 +60,6 @@ pub extern "C" fn actra_free(instance_id: i32) {
     }));
 }
 
-fn read_str(ptr: *const u8, len: usize, name: &str) -> Result<&str, String> {
-    if len > 0 && ptr.is_null() {
-        return Err(format!("{} null pointer", name));
-    }
-
-    if len == 0 {
-        return Ok("");
-    }
-
-    unsafe {
-        std::str::from_utf8(std::slice::from_raw_parts(ptr, len))
-            .map_err(|_| format!("Invalid {}", name))
-    }
-}
-
 //wasm is 32 bit
 fn pack(ptr: *mut u8, len: usize) -> u64 {
     ((ptr as u64) << 32) | (len as u64)
@@ -82,83 +69,75 @@ fn to_buffer(s: String) -> u64 {
     let mut bytes = s.into_bytes();
     let len = bytes.len();
 
-    let mut full = Vec::with_capacity(8 + len);
+    let total = len + 8;
 
-    full.extend_from_slice(&(len as u64).to_le_bytes());
+    let mut full = Vec::with_capacity(total);
+
+    // store TOTAL length (not just string len)
+    full.extend_from_slice(&(total as u64).to_le_bytes());
     full.append(&mut bytes);
 
-    let ptr = full.as_mut_ptr();
+    let base_ptr = full.as_mut_ptr();
 
     std::mem::forget(full);
 
-    pack(ptr, len + 8)
+    // return pointer AFTER header
+    let data_ptr = unsafe { base_ptr.add(8) };
+
+    pack(data_ptr, len)
 }
 
-//To free allocated strings via WasmBuffer
-//Important contract at JS Layer
-//
-/*function readWasmString(wasm, memory, val) {
+fn read_buffer(buf: u64, name: &str) -> Result<&str, String> {
+    if buf == 0 {
+        return Err(format!("{} buffer is null", name));
+    }
+
+    let ptr = (buf >> 32) as *const u8;
+    let len = (buf & 0xffffffff) as usize;
+
+    if len == 0 {
+        return Err(format!("{} empty buffer", name));
+    }
+
+    if ptr.is_null() {
+        return Err(format!("{} null pointer", name));
+    }
+
+    unsafe {
+        std::str::from_utf8(std::slice::from_raw_parts(ptr, len))
+            .map_err(|_| format!("Invalid {}", name))
+    }
+}
+
+/*function readWasmBuffer(wasm, memory, val) {
   const ptr = Number(val >> 32n);
-  const totalLen = Number(val & 0xffffffffn);
+  const len = Number(val & 0xffffffffn);
 
-  // read actual string length
-  const lenView = new DataView(memory.buffer, ptr, 8);
-  const strLen = Number(lenView.getBigUint64(0, true));
-
-  const bytes = new Uint8Array(memory.buffer, ptr + 8, strLen);
+  const bytes = new Uint8Array(memory.buffer, ptr, len);
   const str = new TextDecoder().decode(bytes);
 
-  wasm.actra_string_free(ptr, totalLen);
+  wasm.actra_buffer_free(ptr);
 
   return str;
-} 
-//Usage example 
-const buffer = wasm.actra_create(
-  schemaPtr, schemaLen,
-  policyPtr, policyLen,
-  govPtr, govLen
-);
-
-const result = readWasmString(wasm, memory, buffer);
-
-//policy hash
-const buffer = wasm.actra_policy_hash(instanceId);
-const hash = readWasmString(wasm, memory, buffer);
+}
 */
 #[no_mangle]
-pub extern "C" fn actra_string_free(ptr: *mut u8, total_len: usize) {
-    // len is len+8 with len prefix
-    if ptr.is_null() || total_len == 0 {
+pub extern "C" fn actra_buffer_free(ptr: *mut u8) {
+    if ptr.is_null() {
         return;
     }
 
     unsafe {
-        let _ = Vec::from_raw_parts(ptr, total_len, total_len);
-    }
-}
+        let base = ptr.sub(8);
 
-//Raw memory alloc
-#[no_mangle]
-pub extern "C" fn actra_alloc(size: usize) -> *mut u8 {
-    if size == 0 {
-        return std::ptr::null_mut();
-    }
+        // optional: basic sanity check (cheap guard)
+        let total_len = *(base as *const u64) as usize;
 
-    let mut buf = Vec::with_capacity(size);
-    let ptr = buf.as_mut_ptr();
-    std::mem::forget(buf);
-    ptr
-}
+        if total_len < 8 {
+            return; // corrupted
+        }
 
-//Raw memory dealloc
-#[no_mangle]
-pub extern "C" fn actra_dealloc(ptr: *mut u8, size: usize) {
-    if ptr.is_null() || size == 0 {
-        return;
-    }
-
-    unsafe {
-        let _ = Vec::from_raw_parts(ptr, 0, size);
+        let _ = Vec::from_raw_parts(base, 0, total_len);
     }
 }
 
@@ -177,20 +156,17 @@ fn get_instances() -> &'static Mutex<Vec<Option<ActraInstance>>> {
 
 #[no_mangle]
 pub extern "C" fn actra_create(
-    schema_ptr: *const u8,
-    schema_len: usize,
-    policy_ptr: *const u8,
-    policy_len: usize,
-    gov_ptr: *const u8,
-    gov_len: usize,
+    schema_buf: u64,
+    policy_buf: u64,
+    gov_buf: u64,
 ) -> u64 {
     safe_exec(|| {
 
-        let schema_yaml = read_str(schema_ptr, schema_len, "schema")?;
-        let policy_yaml = read_str(policy_ptr, policy_len, "policy")?;
-
-        let governance_yaml = if gov_len > 0 {
-            Some(read_str(gov_ptr, gov_len, "governance")?)
+        let schema_yaml = read_buffer(schema_buf, "schema")?;
+        let policy_yaml = read_buffer(policy_buf, "policy")?;
+        
+        let governance_yaml = if gov_buf != 0 {
+            Some(read_buffer(gov_buf, "governance")?)
         } else {
             None
         };
@@ -222,8 +198,7 @@ pub extern "C" fn actra_create(
 #[no_mangle]
 pub extern "C" fn actra_evaluate(
     instance_id: i32,
-    input_ptr: *const u8,
-    input_len: usize,
+    input_buf: u64,
 ) -> u64 {
 safe_exec(|| {
 
@@ -231,7 +206,7 @@ safe_exec(|| {
         return Err("invalid instance_id".to_string());
     }
 
-    let input_str = read_str(input_ptr, input_len, "input")?;
+    let input_str = read_buffer(input_buf, "input")?;
 
     let input: JsEvaluationInput = 
         serde_json::from_str(input_str).map_err(|e| e.to_string())?;
@@ -259,6 +234,60 @@ safe_exec(|| {
     })
 })
 }
+
+#[no_mangle]
+pub extern "C" fn actra_buffer_from_js(
+    ptr: *const u8,
+    len: usize,
+) -> u64 {
+    if ptr.is_null() || len == 0 {
+        return 0;
+    }
+
+    unsafe {
+        let input = std::slice::from_raw_parts(ptr, len);
+
+        let total = len + 8;
+        let mut full = Vec::with_capacity(total);
+
+        full.extend_from_slice(&(total as u64).to_le_bytes());
+        full.extend_from_slice(input);
+
+        let base_ptr = full.as_mut_ptr();
+        std::mem::forget(full);
+
+        let data_ptr = base_ptr.add(8);
+
+        pack(data_ptr, len)
+    }
+}
+
+thread_local! {
+    static WRITE_BUF: RefCell<Vec<u8>> = RefCell::new(Vec::new());
+}
+//Reuse buffer using static scratch space : O(1) memory growth
+#[no_mangle]
+pub extern "C" fn actra_write_buffer(len: usize) -> *mut u8 {
+    if len == 0 {
+        return std::ptr::null_mut();
+    }
+
+    WRITE_BUF.with(|buf| {
+        let mut buf = buf.borrow_mut();
+
+        let cap = buf.capacity();
+        if cap < len {
+            buf.reserve_exact(len - cap);
+        }
+
+        unsafe {
+            buf.set_len(len);
+        }
+
+        buf.as_mut_ptr()
+    })
+}
+
 
 
 #[no_mangle]

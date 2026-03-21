@@ -1,6 +1,8 @@
 import { loadActraWasm } from "./loader.js";
 
+// ======================
 // UI helpers
+// ======================
 
 function log(msg) {
   const el = document.getElementById("log");
@@ -11,8 +13,15 @@ function setOutput(msg) {
   document.getElementById("output").textContent = msg;
 }
 
-// Normalize result
+// ======================
+// Result helpers
+// ======================
+
 function formatResult(obj) {
+  if (!obj) {
+    throw new Error("Invalid evaluation result");
+  }
+
   return {
     effect: obj.effect,
     matched_rule:
@@ -22,47 +31,54 @@ function formatResult(obj) {
   };
 }
 
-// WASM helpers
+// ======================
+// WASM helpers (NEW ABI)
+// ======================
 
-function allocString(wasm, memory, str) {
+function toWasmBuffer(wasm, memory, str) {
   const encoder = new TextEncoder();
   const bytes = encoder.encode(str);
 
-  const ptr = wasm.actra_alloc(bytes.length);
+  const ptr = wasm.actra_write_buffer(bytes.length);
 
-  const mem = new Uint8Array(memory.buffer, ptr, bytes.length);
-  mem.set(bytes);
+  const mem = new Uint8Array(memory.buffer);
+  mem.set(bytes, ptr);
 
-  return { ptr, len: bytes.length };
+  return wasm.actra_buffer_from_js(ptr, bytes.length);
 }
 
 function readBuffer(wasm, memory, val) {
   const v = BigInt(val);
 
   const ptr = Number(v >> 32n);
+  const len = Number(v & 0xffffffffn);
 
-  if (ptr <= 0) {
-    throw new Error("Invalid WASM pointer");
+  if (!ptr || len <= 0) {
+    throw new Error("Invalid WASM buffer");
   }
 
-  // Read length prefix (8 bytes)
-  const lenView = new DataView(memory.buffer, ptr, 8);
-  const len = Number(lenView.getBigUint64(0, true));
-
-  if (len <= 0 || len > memory.buffer.byteLength) {
-    throw new Error("Invalid WASM length");
-  }
-
-  const bytes = new Uint8Array(memory.buffer, ptr + 8, len);
+  const bytes = new Uint8Array(memory.buffer, ptr, len);
   const str = new TextDecoder().decode(bytes);
 
-  // Free (len + 8 prefix)
-  wasm.actra_string_free(ptr, len + 8);
+  wasm.actra_buffer_free(ptr);
 
   return str;
 }
 
+function parseResult(wasm, memory, buf) {
+  const raw = readBuffer(wasm, memory, buf);
+  const parsed = JSON.parse(raw);
+
+  if (parsed.ok !== "true") {
+    throw new Error(parsed.error || "Unknown WASM error");
+  }
+
+  return parsed.data;
+}
+
+// ======================
 // MAIN TEST
+// ======================
 
 async function run() {
   try {
@@ -75,28 +91,26 @@ async function run() {
 
     log("WASM loaded");
 
-    //Schema & Policy
+    // ======================
+    // Schema & Policy
+    // ======================
 
     const schema = `
 version: 1
-
 actions:
   refund:
     fields:
       amount: number
-
 actor:
   fields:
     role: string
-
 snapshot:
   fields:
     fraud_flag: boolean
-`;
+`.trim();
 
     const policy = `
 version: 1
-
 rules:
   - id: block_large_refund
     scope:
@@ -109,41 +123,34 @@ rules:
       value:
         literal: 1000
     effect: block
-`;
+`.trim();
 
+    // ======================
     // CREATE
+    // ======================
 
-    const s = allocString(wasm, memory, schema);
-    const p = allocString(wasm, memory, policy);
+    const schemaBuf = toWasmBuffer(wasm, memory, schema);
+    const policyBuf = toWasmBuffer(wasm, memory, policy);
 
     const createBuf = wasm.actra_create(
-      s.ptr, s.len,
-      p.ptr, p.len,
-      0, 0
+      schemaBuf,
+      policyBuf,
+      0n
     );
-
-    // Free input buffers immediately
-    wasm.actra_dealloc(s.ptr, s.len);
-    wasm.actra_dealloc(p.ptr, p.len);
 
     if (!createBuf) {
       throw new Error("actra_create returned null/0");
     }
 
-    const createOut = readBuffer(wasm, memory, createBuf);
-    const createParsed = JSON.parse(createOut);
-
-    log("CREATE RAW: " + createOut);
-
-    if (createParsed.ok !== "true") {
-      throw new Error(createParsed.error);
-    }
-
-    const instanceId = parseInt(createParsed.data, 10);
+    const instanceId = Number(
+      parseResult(wasm, memory, createBuf)
+    );
 
     log("Instance ID: " + instanceId);
 
+    // ======================
     // EVALUATE
+    // ======================
 
     const input = {
       action: { type: "refund", amount: 1500 },
@@ -151,41 +158,38 @@ rules:
       snapshot: {}
     };
 
-    const inputStr = JSON.stringify(input);
-    const i = allocString(wasm, memory, inputStr);
+    const inputBuf = toWasmBuffer(
+      wasm,
+      memory,
+      JSON.stringify(input)
+    );
 
     const evalBuf = wasm.actra_evaluate(
       instanceId,
-      i.ptr,
-      i.len
+      inputBuf
     );
-
-    wasm.actra_dealloc(i.ptr, i.len);
 
     if (!evalBuf) {
       throw new Error("actra_evaluate returned null/0");
     }
 
-    const evalOut = readBuffer(wasm, memory, evalBuf);
-    const evalParsed = JSON.parse(evalOut);
+    const result = formatResult(
+      parseResult(wasm, memory, evalBuf)
+    );
 
-    log("EVAL RAW: " + evalOut);
+    log("EVAL: " + JSON.stringify(result, null, 2));
 
-    if (evalParsed.ok !== "true") {
-      throw new Error(evalParsed.error);
-    }
-
-    const result = formatResult(evalParsed.data);
-
-    log("EVAL FORMATTED: " + JSON.stringify(result, null, 2));
-
+    // ======================
     // ASSERT
+    // ======================
 
     if (result.effect !== "block") {
       throw new Error("Expected block");
     }
 
+    // ======================
     // CLEANUP
+    // ======================
 
     wasm.actra_free(instanceId);
 
