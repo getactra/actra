@@ -1,24 +1,21 @@
-import { execSync } from "child_process";
-import { rmSync, existsSync } from "fs";
+import fs from "fs/promises";
+import path from "path";
 
-const builds = [
-  { target: "bundler", out: "pkg/bundler" },
-  { target: "web", out: "pkg/web" },
-  { target: "nodejs", out: "pkg/node" },
-  { target: "deno", out: "pkg/deno" }
+const src = path.resolve(
+  "../../target/wasm32-unknown-unknown/release/actra_wasm.wasm"
+);
+
+// destinations
+const targets = [
+  "./test/actra_wasm.wasm",
+  "./test/webpack/actra_wasm.wasm"
 ];
 
-console.log("CWD:", process.cwd());
+for (const dest of targets) {
+  const out = path.resolve(dest);
 
-if (existsSync("pkg")) {
-  console.log("\nCleaning pkg directory...");
-  rmSync("pkg", { recursive: true, force: true });
-}
+  await fs.mkdir(path.dirname(out), { recursive: true });
+  await fs.copyFile(src, out);
 
-for (const b of builds) {
-  console.log(`\nBuilding ${b.target}...`);
-  execSync(
-    `wasm-pack build . --target ${b.target} --out-dir ${b.out} --release`,
-    { stdio: "inherit" }
-  );
+  console.log("Copied WASM ->", dest);
 }

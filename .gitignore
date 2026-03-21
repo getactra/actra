@@ -35,6 +35,7 @@ ____*/
 ____*
 bindings/wasm/pkg/
 sdk/js/server/pkg/
-sdk/js/server/dist/
+dist/
 sdk/js/web/pkg/
 pnpm-lock.yaml
+actra_wasm.wasm
