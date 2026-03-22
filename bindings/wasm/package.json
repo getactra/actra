@@ -9,7 +9,8 @@
     "test:node": "node test/raw-test.mjs",
     "test:bun": "bun test/raw-test.mjs",
     "test:deno": "deno run --allow-read test/raw-test.mjs",
-    "test:browser": "npx serve ."
+    "test:browser": "npx serve .",
+    "test:bench": "node test/throughput-test.mjs"
   },
   "exports": {
     ".": "./js/actra.mjs"

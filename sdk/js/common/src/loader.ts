@@ -1,3 +1,4 @@
+import { ActraError } from "common/dist"
 import fs from "fs/promises"
 import path from "path"
 
@@ -22,7 +23,7 @@ export async function loadPolicyDirectory(
   try {
     schema = await loadFile(path.join(base, "schema.yaml"))
   } catch (err: any) {
-    throw new Error(
+    throw new ActraError(
       `Actra policy directory missing schema.yaml: ${err?.message || err}`
     )
   }
@@ -30,7 +31,7 @@ export async function loadPolicyDirectory(
   try {
     policy = await loadFile(path.join(base, "policy.yaml"))
   } catch (err: any) {
-    throw new Error(
+    throw new ActraError(
       `Actra policy directory missing policy.yaml: ${err?.message || err}`
     )
   }

@@ -1,3 +1,4 @@
+import { ActraError } from "common/dist"
 import { EvaluationInput } from "./types"
 
 function isObject(value: unknown): boolean {
@@ -9,18 +10,18 @@ export function validateEvaluationInput(
 ) {
 
   if (!input) {
-    throw new Error("evaluation input missing")
+    throw new ActraError("evaluation input missing")
   }
 
   if (!isObject(input.action)) {
-    throw new Error("action must be an object")
+    throw new ActraError("action must be an object")
   }
 
   if (!isObject(input.actor)) {
-    throw new Error("actor must be an object")
+    throw new ActraError("actor must be an object")
   }
 
   if (!isObject(input.snapshot)) {
-    throw new Error("snapshot must be an object")
+    throw new ActraError("snapshot must be an object")
   }
 }

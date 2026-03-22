@@ -1,15 +1,13 @@
 {
   "private": true,
-  "workspaces": [
-    "common",
-    "server",
-    "browser"
-  ],
+  "name": "actra-monorepo",
+  "packageManager": "pnpm",
   "devDependencies": {
     "tsup": "^8.5.1",
     "typescript": "^5.9.3"
   },
   "scripts": {
-    "build": "npm run build -w runtime && npm run build -w web"
+    "build": "pnpm -r build",
+    "clean": "pnpm -r exec rm -rf dist"
   }
 }

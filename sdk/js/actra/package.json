@@ -1,0 +1,45 @@
+{
+  "name": "@getactra/actra",
+  "version": "0.1.0",
+  "description": "Actra JavaScript SDK for server and edge runtimes",
+  "type": "module",
+
+  "dependencies": {
+    "@actra/common": "workspace:*"
+  },
+
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+
+  "files": [
+    "dist"
+  ],
+
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+
+  "sideEffects": false,
+
+  "engines": {
+    "node": ">=18"
+  },
+
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts && cp src/actra_wasm.wasm dist/",
+    "test": "vitest",
+    "test:core": "pnpm exec tsx tests/actra-wasm-core.check.ts"
+  },
+
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}

@@ -15,7 +15,7 @@ function buildAction(
   ctx?: any
 ): Action {
 
-  const base: Action = { action: actionName }
+  const base: Action = { type: actionName }
 
   if (!builder) {
     return base
@@ -100,7 +100,7 @@ export class ActraRuntime {
         snapshot
       })
     } catch (err) {
-      throw new ActraError(`Policy evaluation failed: ${serializeError(err)}`)
+      throw new ActraPolicyError(`Policy evaluation failed: ${serializeError(err)}`)
     }
     const end = Date.now()
     const duration = end - start
@@ -129,7 +129,7 @@ export class ActraRuntime {
   ): boolean {
 
     const decision = this.evaluate(
-      { action: actionName, ...(args || {}) },
+      { type: actionName, ...(args || {}) },
       ctx
     )
 
@@ -156,8 +156,8 @@ export class ActraRuntime {
 
       if (decision.effect !== "allow") {
         throw new ActraPolicyError(
-          "Action blocked",
-          decision.matched_rule
+          `Action blocked (rule: ${decision.matched_rule || "unknown"})`,
+          decision
         )
       }
 

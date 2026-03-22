@@ -1,89 +1,66 @@
-export class Actra {
-  constructor(wasm, memory, { schema, policy, governance }) {
+export class ActraWasmABI {
+  constructor(wasm, memory) {
     this.wasm = wasm;
     this.memory = memory;
-
-    this.instanceId = this.#createInstance(schema, policy, governance);
   }
 
-  #allocString(str) {
+  //Buffer primitives
+
+  writeBuffer(str) {
     const encoder = new TextEncoder();
     const bytes = encoder.encode(str);
 
-    const ptr = this.wasm.actra_alloc(bytes.length);
-    const mem = new Uint8Array(this.memory.buffer, ptr, bytes.length);
-    mem.set(bytes);
+    const ptr = this.wasm.actra_write_buffer(bytes.length);
+    new Uint8Array(this.memory.buffer).set(bytes, ptr);
 
-    return { ptr, len: bytes.length };
+    return this.wasm.actra_buffer_from_js(ptr, bytes.length);
   }
 
-  #readBuffer(buffer) {
-    const bytes = new Uint8Array(this.memory.buffer, buffer.ptr, buffer.len);
+  readBuffer(buf) {
+    const ptr = Number(buf >> 32n);
+    const len = Number(buf & 0xffffffffn);
+
+    const bytes = new Uint8Array(this.memory.buffer, ptr, len);
     const str = new TextDecoder().decode(bytes);
 
-    this.wasm.actra_string_free(buffer.ptr, buffer.len);
+    this.wasm.actra_buffer_free(ptr);
 
     return str;
   }
 
-  #callCreate(schema, policy, governance) {
-    const s = this.#allocString(schema);
-    const p = this.#allocString(policy);
-    const g = governance ? this.#allocString(governance) : { ptr: 0, len: 0 };
+  //Core exports
 
-    const buf = this.wasm.actra_create(
-      s.ptr, s.len,
-      p.ptr, p.len,
-      g.ptr, g.len
-    );
-
-    return this.#readBuffer(buf);
+  actra_create(schemaBuf, policyBuf, govBuf) {
+    return this.wasm.actra_create(schemaBuf, policyBuf, govBuf);
   }
 
-  #createInstance(schema, policy, governance) {
-    const out = this.#callCreate(schema, policy, governance);
-    const parsed = JSON.parse(out);
-
-    if (parsed.ok === "false") {
-      throw new Error(parsed.error);
-    }
-
-    return parseInt(parsed.data, 10);
+  actra_evaluate(instanceId, inputBuf) {
+    return this.wasm.actra_evaluate(instanceId, inputBuf);
   }
 
-  evaluate(input) {
-    const inputStr = JSON.stringify(input);
-    const i = this.#allocString(inputStr);
-
-    const buf = this.wasm.actra_evaluate(
-      this.instanceId,
-      i.ptr,
-      i.len
-    );
-
-    const out = this.#readBuffer(buf);
-    const parsed = JSON.parse(out);
-
-    if (parsed.ok === "false") {
-      throw new Error(parsed.error);
-    }
-
-    return parsed.data;
+  actra_policy_hash(instanceId) {
+    return this.wasm.actra_policy_hash(instanceId);
   }
 
-  policyHash() {
-    const buf = this.wasm.actra_policy_hash(this.instanceId);
-    const out = this.#readBuffer(buf);
-    const parsed = JSON.parse(out);
-
-    if (parsed.ok === "false") {
-      throw new Error(parsed.error);
-    }
-
-    return parsed.data;
+  actra_compiler_version() {
+    return this.wasm.actra_compiler_version();
   }
 
-  free() {
-    this.wasm.actra_free(this.instanceId);
+  actra_free(instanceId) {
+    this.wasm.actra_free(instanceId);
+  }
+
+  // Raw buffer ops
+
+  actra_buffer_from_js(ptr, len) {
+    return this.wasm.actra_buffer_from_js(ptr, len);
+  }
+
+  actra_buffer_free(ptr) {
+    this.wasm.actra_buffer_free(ptr);
+  }
+
+  actra_write_buffer(len) {
+    return this.wasm.actra_write_buffer(len);
   }
 }

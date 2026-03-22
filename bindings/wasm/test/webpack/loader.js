@@ -1,4 +1,4 @@
-export async function loadActraWasm(path) {
+export async function loadActraWasm(input) {
   let instance;
 
   const imports = {
@@ -9,50 +9,118 @@ export async function loadActraWasm(path) {
     }
   };
 
-  // 1. Deno
-  if (typeof Deno !== "undefined" && typeof Deno.readFile === "function") {
-    const bytes = await Deno.readFile(path);
-    const result = await WebAssembly.instantiate(bytes, imports);
-    instance = result.instance;
+  const url = input;
+
+  async function instantiate(bytes) {
+    const { instance } = await WebAssembly.instantiate(bytes, imports);
+    return instance;
   }
 
-  // 2. Node / Bun
-  else if (typeof process !== "undefined" && process.versions?.node) {
-    const fs = await import("fs/promises");
-    const bytes = await fs.readFile(path);
+  // runtime detection
 
-    const result = await WebAssembly.instantiate(bytes, imports);
-    instance = result.instance;
-  }
+  const isNode =
+    typeof process !== "undefined" &&
+    process.versions &&
+    process.versions.node;
 
-  // 3. Browser / Workers / Edge
-  else {
-    const res = await fetch(path);
+  const isDeno =
+    typeof Deno !== "undefined" &&
+    typeof Deno.readFile === "function";
 
-    if (!res.ok) {
-      throw new Error(`Failed to fetch WASM: ${res.status}`);
-    }
+  // load wasm
 
-    // Try streaming first (fast path)
-    if (WebAssembly.instantiateStreaming) {
-      try {
-        const result = await WebAssembly.instantiateStreaming(res, imports);
-        instance = result.instance;
-      } catch {
-        // Fallback if MIME type is wrong
-        const bytes = await res.arrayBuffer();
-        const result = await WebAssembly.instantiate(bytes, imports);
-        instance = result.instance;
+  try {
+    // browser / workers / edge
+    if (!isNode && !isDeno) {
+      const res = await fetch(url);
+
+      if (!res.ok) {
+        throw new Error(`Failed to fetch WASM: ${res.status}`);
       }
-    } else {
-      const bytes = await res.arrayBuffer();
-      const result = await WebAssembly.instantiate(bytes, imports);
-      instance = result.instance;
+
+      if (WebAssembly.instantiateStreaming) {
+        try {
+          const { instance: inst } =
+            await WebAssembly.instantiateStreaming(res, imports);
+          instance = inst;
+        } catch {
+          const bytes = await res.arrayBuffer();
+          instance = await instantiate(bytes);
+        }
+      } else {
+        const bytes = await res.arrayBuffer();
+        instance = await instantiate(bytes);
+      }
     }
+
+    // deno
+    else if (isDeno) {
+      let bytes;
+
+      if (url instanceof URL && url.protocol === "file:") {
+        // requires: --allow-read
+        bytes = await Deno.readFile(url);
+      } else {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch WASM: ${res.status}`);
+        }
+
+        bytes = await res.arrayBuffer();
+      }
+
+      instance = await instantiate(bytes);
+    }
+
+    // node / bun
+    else {
+      let bytes;
+
+      if (url instanceof URL && url.protocol === "file:") {
+        const fs = await import(
+          /* webpackIgnore: true */ "fs/promises"
+        );
+
+        bytes = await fs.readFile(url);
+      } else {
+        const res = await fetch(url);
+
+        if (!res.ok) {
+          throw new Error(`Failed to fetch WASM: ${res.status}`);
+        }
+
+        bytes = await res.arrayBuffer();
+      }
+
+      instance = await instantiate(bytes);
+    }
+  } catch (err) {
+    throw new Error(`WASM load failed: ${err.message}`);
   }
 
-  return {
-    exports: instance.exports,
-    memory: instance.exports.memory
-  };
+  const exports = instance.exports;
+  const memory = exports.memory;
+
+  // validation
+
+  if (typeof exports.actra_create !== "function") {
+    throw new Error("actra_create export not found");
+  }
+
+  try {
+    const test = exports.actra_compiler_version();
+
+    if (typeof test !== "bigint") {
+      throw new Error(
+        "WASM i64 is not mapped to BigInt. Use modern runtime."
+      );
+    }
+  } catch (e) {
+    throw new Error(
+      "WASM BigInt support failed.\n" + e.message
+    );
+  }
+
+  return { exports, memory };
 }
