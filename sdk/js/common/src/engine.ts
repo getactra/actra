@@ -1,3 +1,4 @@
+import { ActraError } from "common/dist"
 import { EvaluationInput, Decision } from "./types"
 
 let initPromise: Promise<void> | null = null
@@ -31,7 +32,7 @@ let registeredEngine: NativeCompiler | null = null
 
 export function registerEngine(engineImpl: NativeCompiler) {
   if (!engineImpl) {
-    throw new Error("Invalid Actra engine")
+    throw new ActraError("Invalid Actra engine")
   }
 
   if (registeredEngine === engineImpl) {
@@ -39,7 +40,7 @@ export function registerEngine(engineImpl: NativeCompiler) {
   }
 
   if (registeredEngine) {
-    throw new Error("Actra engine already initialized")
+    throw new ActraError("Actra engine already initialized")
   }
 
   registeredEngine = engineImpl
@@ -47,7 +48,7 @@ export function registerEngine(engineImpl: NativeCompiler) {
 
 export function getEngine(): NativeCompiler {
   if (!registeredEngine) {
-    throw new Error(
+    throw new ActraError(
       "Actra engine not initialized. Call initializeWasmEngine() first."
     )
   }

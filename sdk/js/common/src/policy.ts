@@ -1,6 +1,7 @@
 import { EvaluationInput, Decision } from "./types"
 import { validateEvaluationInput } from "./validators"
 import { NativePolicy } from "./engine"
+import { ActraPolicyError } from "common/dist"
 
 export class Policy {
 
@@ -9,7 +10,7 @@ export class Policy {
   constructor(policyImpl: NativePolicy) {
 
     if (!policyImpl) {
-      throw new Error("Invalid native policy instance")
+      throw new ActraPolicyError("Invalid native policy instance")
     }
 
     this.nativePolicy = policyImpl
@@ -22,7 +23,7 @@ export class Policy {
     try {
       return this.nativePolicy.evaluate(input)
     } catch (err) {
-      throw new Error(
+      throw new ActraPolicyError(
         `Actra policy evaluation failed: ${err}`
       )
     }
@@ -33,7 +34,7 @@ export class Policy {
     try {
       return this.nativePolicy.policyHash()
     } catch (err) {
-      throw new Error(
+      throw new ActraPolicyError(
         `Failed to retrieve policy hash: ${err}`
       )
     }

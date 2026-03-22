@@ -13,7 +13,7 @@ export type {
   Decision,
   DecisionEvent,
   EvaluationInput,
-  Scalar
+  JSONValue
 } from "./types"
 
 export type { DecisionObserver } from "./events"

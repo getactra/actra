@@ -1,7 +1,14 @@
+### v0.7.0 - 22 March 2026
+- updated wasm abi raw memory management exports
+- added benchmark script for wasm abi testing for wasm bindings
+- updated loader and tests to support new raw wasm exports
+- updated js sdk with raw memory implementation
+- major js sdk structure refactor with test
+
 ### v0.6.2 - 21 March 2026
-- updated wasm bindings for raw wasm abi
 - removed wasm bindgen
-- added raw tests for wasm - JS wrapper
+- updated wasm bindings for raw wasm abi support
+- added raw tests for wasm abi js wrapper
 
 ### v0.6.1 - 19 March 2026
 - added wasm bindings for Node, Bun, Browser, Deno and Edge

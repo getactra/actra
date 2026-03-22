@@ -1,3 +1,5 @@
+import { Decision } from "./types"
+
 export class ActraError extends Error {
   constructor(message: string) {
     super(message)
@@ -6,11 +8,15 @@ export class ActraError extends Error {
 }
 
 export class ActraPolicyError extends ActraError {
-  matchedRule?: string
+  decision?: Decision
 
-  constructor(message: string, matchedRule?: string) {
+  constructor(message: string, decision?: Decision) {
     super(message)
     this.name = "ActraPolicyError"
-    this.matchedRule = matchedRule
+    this.decision = decision
+  }
+
+  get matchedRule(): string | undefined {
+    return this.decision?.matched_rule
   }
 }

@@ -148,6 +148,7 @@ struct ActraInstance {
 //Allows freeing slots without shifting indices
 //Prevents ID corruption
 //Keeps instance IDs stable
+// TODO: Replace Vec<Option<...>> with Slab for O(1) allocation and cleaner semantics
 static INSTANCES: OnceLock<Mutex<Vec<Option<ActraInstance>>>> = OnceLock::new();
 
 fn get_instances() -> &'static Mutex<Vec<Option<ActraInstance>>> {

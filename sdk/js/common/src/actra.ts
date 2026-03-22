@@ -1,87 +1,79 @@
-//actra.ts
 import { Policy } from "./policy"
 import { getEngine, ensureEngineReady } from "./engine"
 import { loadFile, loadPolicyDirectory } from "./loader"
+import { ActraError } from "common/dist"
 
-/*
- Actra compiler facade.
-
- Responsible for compiling policies and returning Policy instances.
- The underlying engine implementation is registered by the platform
- adapter (server/browser).
-*/
 export class Actra {
 
-    private static get engine() {
-        return getEngine()
+  static async fromStrings(
+    schemaYaml: string,
+    policyYaml: string,
+    governanceYaml?: string
+  ): Promise<Policy> {
+
+    if (!schemaYaml?.trim()) {
+      throw new ActraError("Schema cannot be empty")
     }
 
-    /** 
-    Compile policy from YAML strings
-    */
-    static async fromStrings(
-        schemaYaml: string,
-        policyYaml: string,
-        governanceYaml?: string
-    ): Promise<Policy> {
-        try {
-            await ensureEngineReady()
-
-            const compiled = this.engine.compile(
-                schemaYaml,
-                policyYaml,
-                governanceYaml
-            )
-
-            return new Policy(compiled)
-
-        } catch (err) {
-            throw new Error(`Actra compilation failed: ${err}`)
-        }
+    if (!policyYaml?.trim()) {
+      throw new ActraError("Policy cannot be empty")
     }
 
-    /*
-    Compile policy from YAML files
-    */
-    static async fromFiles(
-        schemaPath: string,
-        policyPath: string,
-        governancePath?: string
-    ): Promise<Policy> {
+    try {
+      await ensureEngineReady()
 
-        const schema = await loadFile(schemaPath)
-        const policy = await loadFile(policyPath)
+      const engine = getEngine()
 
-        const governance = governancePath
-            ? await loadFile(governancePath)
-            : undefined
+      const compiled = engine.compile(
+        schemaYaml,
+        policyYaml,
+        governanceYaml
+      )
 
-        return this.fromStrings(schema, policy, governance)
+      return new Policy(compiled)
 
-    }
-
-    /*
-    Compile policy from directory
-    */
-    static async fromDirectory(
-        directory: string
-    ): Promise<Policy> {
-
-        const files = await loadPolicyDirectory(directory)
-
-        return this.fromStrings(
-            files.schema,
-            files.policy,
-            files.governance
+    } catch (err) {
+      if (err instanceof ActraError) {
+        throw new ActraError(
+          `Actra compilation failed: ${err.message}`
         )
+      }
 
+      throw new ActraError(`Actra compilation failed: ${String(err)}`)
     }
+  }
 
-    /* 
-    Return Actra compiler version
-    */
-    static async compilerVersion(): Promise<string> {
-        return this.engine.compilerVersion()
+  static async fromFiles(
+    schemaPath: string,
+    policyPath: string,
+    governancePath?: string
+  ): Promise<Policy> {
 
-    }
+    const schema = await loadFile(schemaPath)
+    const policy = await loadFile(policyPath)
+
+    const governance = governancePath
+      ? await loadFile(governancePath)
+      : undefined
+
+    return this.fromStrings(schema, policy, governance)
+  }
+
+  static async fromDirectory(
+    directory: string
+  ): Promise<Policy> {
+
+    const files = await loadPolicyDirectory(directory)
+
+    return this.fromStrings(
+      files.schema,
+      files.policy,
+      files.governance
+    )
+  }
+
+  static async compilerVersion(): Promise<string> {
+    await ensureEngineReady()
+    return getEngine().compilerVersion()
+  }
 }
