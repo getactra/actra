@@ -4,12 +4,8 @@
   "description": "Actra JavaScript SDK for server and edge runtimes",
   "type": "module",
 
-  "dependencies": {
-    "@actra/common": "workspace:*"
-  },
-
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
+  "main": "./dist/node-entry.js",
+  "module": "./dist/browser-entry.js",
   "types": "./dist/index.d.ts",
 
   "files": [
@@ -18,8 +14,11 @@
 
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/browser-entry.js",
+      "worker": "./dist/browser-entry.js",
+      "deno": "./dist/browser-entry.js",
+      "default": "./dist/node-entry.js"
     }
   },
 
@@ -29,8 +28,18 @@
     "node": ">=18"
   },
 
+  "typesVersions": {
+    "*": {
+      "*": ["dist/index.d.ts"]
+    }
+  },
+
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts && cp src/actra_wasm.wasm dist/",
+    "build": "pnpm run build:node && pnpm run build:browser && pnpm run copy:wasm-dist",
+    "build:node": "tsup src/node-entry.ts --format esm --dts --platform node --out-dir dist --clean",
+    "build:browser": "tsup src/browser-entry.ts --format esm --platform browser --out-dir dist",
+    "copy:wasm-frmtarget": "cp ../../../target/wasm32-unknown-unknown/release/actra_wasm.wasm src/",
+    "copy:wasm-dist": "pnpm run copy:wasm-frmtarget && cp src/actra_wasm.wasm dist/",
     "test": "vitest",
     "test:core": "pnpm exec tsx tests/actra-wasm-core.check.ts"
   },

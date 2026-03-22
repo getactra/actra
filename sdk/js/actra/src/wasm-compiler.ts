@@ -1,11 +1,6 @@
-import {
-  ActraError,
-  NativeCompiler,
-  NativePolicy,
-  Decision,
-  DecisionEffect,
-  isDecisionEffect
-} from "@actra/common";
+import { ActraError} from "./common/errors"
+import {NativeCompiler, NativePolicy} from "./common/engine"
+import {Decision, DecisionEffect, isDecisionEffect} from "./common/types";
 import { ActraWasm } from "./actra-wasm";
 
 // internal types
@@ -32,7 +27,7 @@ function toDecision(res: WasmDecision): Decision {
 
 //compiler
 export class WasmCompiler implements NativeCompiler {
-  constructor(private wasm: ActraWasm) {}
+  constructor(private wasm: ActraWasm) { }
 
   compile(
     schema: string,
@@ -45,13 +40,24 @@ export class WasmCompiler implements NativeCompiler {
     try {
       instanceId = this.wasm.create(schema, policy, governance);
     } catch (err) {
-      throw new ActraError(`Actra runtime engine: policy compile failed: ${err}`);
+      if (err instanceof ActraError) {
+        throw new ActraError(
+          `Actra runtime engine: policy compile failed: ${err.message}`
+        );
+      }
+
+      throw new ActraError(
+        `Actra runtime engine: policy compile failed: ${String(err)}`
+      );
     }
 
     const wasm = this.wasm;
 
     const nativePolicy: NativePolicy & { free?: () => void } = {
       evaluate(input): Decision {
+        if (input == null) {
+          throw new ActraError("Evaluation input cannot be null or undefined");
+        }
         const res = wasm.evaluate(instanceId, input);
         return toDecision(res);
       },
@@ -60,6 +66,7 @@ export class WasmCompiler implements NativeCompiler {
         return wasm.policyHash(instanceId);
       },
 
+      // IMPORTANT: call free() when policy no longer needed
       free() {
         wasm.free(instanceId);
       }

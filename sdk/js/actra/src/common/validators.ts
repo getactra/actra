@@ -1,4 +1,4 @@
-import { ActraError } from "common/dist"
+import { ActraError } from "./errors"
 import { EvaluationInput } from "./types"
 
 function isObject(value: unknown): boolean {

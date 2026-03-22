@@ -1,7 +1,7 @@
 import { EvaluationInput, Decision } from "./types"
 import { validateEvaluationInput } from "./validators"
 import { NativePolicy } from "./engine"
-import { ActraPolicyError } from "common/dist"
+import { ActraPolicyError } from "./errors"
 
 export class Policy {
 
