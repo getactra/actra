@@ -1,17 +1,23 @@
 import { loadActraWasmShared } from "./shared";
+import type { WasmInput, ActraWasmModule } from "./types";
 
-export function loadActraWasm(input) {
+export function loadActraWasm(
+  input: WasmInput
+): Promise<ActraWasmModule> {
+
   return loadActraWasmShared(input, {
-    fetch: (input) => fetch(input),
+    fetch: globalThis.fetch,
 
     readFile: async (input) => {
       const [fs, url] = await Promise.all([
-        import("fs/promises"),
-        import("url")
+        import("node:fs/promises"),
+        import("node:url")
       ]);
 
       const filePath =
-        input instanceof URL ? url.fileURLToPath(input) : input;
+        input instanceof URL
+          ? url.fileURLToPath(input)
+          : String(input);
 
       return fs.readFile(filePath);
     }

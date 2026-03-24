@@ -20,11 +20,13 @@ export async function loadActraWasmShared(
     }
   };
 
+
   function isResponseLike(input: unknown): input is Response {
     return (
       typeof input === "object" &&
       input !== null &&
-      typeof (input as any).arrayBuffer === "function"
+      typeof (input as any).arrayBuffer === "function" &&
+      typeof (input as any).headers === "object"
     );
   }
 
@@ -82,8 +84,10 @@ export async function loadActraWasmShared(
         try {
           const res = await env.fetch(input);
           return loadActraWasmShared(res, env);
-        } catch {
-          // fallback
+        } catch (err) {
+          if (!(err instanceof TypeError)) {
+            throw err;
+          }
         }
       }
 

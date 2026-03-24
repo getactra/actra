@@ -1,9 +1,20 @@
+import { ActraError } from "../common/errors";
+
 export function getInstance(
   result: WebAssembly.Instance | WebAssembly.WebAssemblyInstantiatedSource
 ): WebAssembly.Instance {
-  return result instanceof WebAssembly.Instance
-    ? result
-    : result.instance;
+  if (result instanceof WebAssembly.Instance) {
+    return result;
+  }
+
+  const instance =
+    (result as WebAssembly.WebAssemblyInstantiatedSource).instance;
+
+  if (!instance) {
+    throw new ActraError("Invalid WebAssembly instantiation result");
+  }
+
+  return instance;
 }
 
 export async function instantiate(
