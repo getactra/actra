@@ -1,3 +1,10 @@
+### v0.7.1 - 24 March 2026
+- updated loader for multi js runtime support
+- updated js sdk to support multi runtime export as per runtimes
+- restructured js sdk for publishing
+- combined common with main js sdk 
+- updated error handling for loader
+
 ### v0.7.0 - 22 March 2026
 - updated wasm abi raw memory management exports
 - added benchmark script for wasm abi testing for wasm bindings

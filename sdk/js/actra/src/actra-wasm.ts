@@ -1,6 +1,6 @@
-import { ActraError } from "@actra/common";
-import { loadActraWasm } from "./wasm-loader";
-import type { ActraWasmExports, ActraWasmModule } from "./wasm-loader";
+import { ActraError } from "./common/errors";
+import type { ActraWasmExports, ActraWasmModule, WasmInput } from "./loader/types";
+import { getWasmLoader } from "./loader/loader-registry";
 
 type RawResponse<T> = {
     ok: "true" | "false";
@@ -12,10 +12,6 @@ export type WasmDecision = {
     effect: string;
     matched_rule: string | null;
 };
-
-function normalizeRule(rule: string | null | undefined): string | null {
-  return !rule ? null : rule;
-}
 
 export class ActraWasm {
     private wasm: ActraWasmExports;
@@ -33,10 +29,25 @@ export class ActraWasm {
 
     // loader
 
-    static async load(
+    /*static async load(
         path: string | URL = new URL("./actra_wasm.wasm", import.meta.url)
     ): Promise<ActraWasm> {
         const instance = await loadActraWasm(path);
+        return new ActraWasm(instance);
+    }*/
+
+    static wasmSource?: WasmInput;
+
+    static async load(input?: WasmInput) {
+        const source =
+            input ??
+            this.wasmSource ??
+            new URL("./actra_wasm.wasm", import.meta.url);
+        
+        const loader = getWasmLoader(); 
+
+        const instance = await loader(source);
+
         return new ActraWasm(instance);
     }
 
@@ -134,7 +145,7 @@ export class ActraWasm {
             govBuf
         );
 
-        if (!res) {
+        if (res === 0n) {
             throw new ActraError("actra_create failed");
         }
 
@@ -158,7 +169,7 @@ export class ActraWasm {
             inputBuf
         );
 
-        if (!res) {
+        if (res === 0n) {
             throw new ActraError("actra_evaluate failed");
         }
 

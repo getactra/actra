@@ -1,4 +1,12 @@
 import { ActraWasm } from "../src/actra-wasm";
+import { setWasmLoader } from "../src/loader/loader-registry"
+import { loadActraWasm } from "../src/loader/node-loader"
+import { initWasm } from "../src/init/wasm-init"
+
+
+setWasmLoader(loadActraWasm)
+
+initWasm()
 
 console.log("TEST STARTED");
 
@@ -114,7 +122,17 @@ rules:
 
   console.log("Running mini stress...");
 
+  const ITERATIONS = 200_000;
+
+  // warmup (important for JIT + WASM)
   for (let i = 0; i < 10_000; i++) {
+    actra.evaluate(instanceId, input);
+  }
+
+  // measure
+  const start = performance.now();
+
+  for (let i = 0; i < ITERATIONS; i++) {
     const r = actra.evaluate(instanceId, input);
 
     if (r.effect !== "block") {
@@ -122,33 +140,18 @@ rules:
     }
   }
 
-  console.log("Stress passed");
+  const end = performance.now();
 
-  // instance churn test
+  // metrics
+  const totalMs = end - start;
+  const perOp = totalMs / ITERATIONS;
+  const throughput = (ITERATIONS / totalMs) * 1000;
 
-  console.log("Running churn test...");
+  console.log("Stress passed\n");
 
-  for (let i = 0; i < 1000; i++) {
-    const id = actra.create(schema, policy);
-    actra.free(id);
-  }
-
-  console.log("Churn passed");
-
-  // cleanup
-
-  actra.free(instanceId);
-
-  console.log("Freed instance");
-
-  // memory check
-
-  const mem = (actra as any)["memory"] as WebAssembly.Memory;
-  console.log(
-    "Memory (approx):",
-    Math.round(mem.buffer.byteLength / 1024),
-    "KB"
-  );
+  console.log("Total time:", totalMs.toFixed(2), "ms");
+  console.log("Per eval:", perOp.toFixed(4), "ms");
+  console.log("Throughput:", Math.round(throughput), "ops/sec");
 
   console.log("\nall test passwed");
 }

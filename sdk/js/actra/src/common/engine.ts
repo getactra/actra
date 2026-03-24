@@ -1,16 +1,26 @@
-import { ActraError } from "common/dist"
+import { ActraError } from "./errors"
 import { EvaluationInput, Decision } from "./types"
 
 let initPromise: Promise<void> | null = null
+let initPromiseFn: (() => Promise<void>) | null = null
 
-export function setInitPromise(promise: Promise<void>) {
-  initPromise = promise
+export function setInitPromise(fn: () => Promise<void>) {
+  initPromiseFn = fn
 }
 
 export async function ensureEngineReady() {
-  if (initPromise) {
-    await initPromise
+  if (!initPromiseFn) {
+    throw new ActraError("Actra engine not initialized")
   }
+
+  if (!initPromise) {
+    initPromise = initPromiseFn().catch(err => {
+      initPromise = null // allow retry if init fails
+      throw err
+    })
+  }
+
+  return initPromise
 }
 
 export interface NativePolicy {
@@ -49,7 +59,7 @@ export function registerEngine(engineImpl: NativeCompiler) {
 export function getEngine(): NativeCompiler {
   if (!registeredEngine) {
     throw new ActraError(
-      "Actra engine not initialized. Call initializeWasmEngine() first."
+      "Actra engine not initialized"
     )
   }
   return registeredEngine
