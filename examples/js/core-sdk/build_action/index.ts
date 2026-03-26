@@ -76,21 +76,12 @@ async function run() {
   };
 
   // ------------------------------------------------------------
-  // 6. Define handler signature
+  // 6. Build action
   // ------------------------------------------------------------
-  // Used ONLY for shape inference (not executed)
-
-  function fakeHandler(amount: number) {
-    // no-op
-  }
-
-  const action = runtime.buildAction({
-    func: fakeHandler,
-    action: "refund",
-    args: [],
-    kwargs: requestData,
-    ctx: null
-  });
+  const action = runtime.buildAction(
+    "refund",
+    requestData
+  );
 
   // ------------------------------------------------------------
   // 7. Evaluate decision

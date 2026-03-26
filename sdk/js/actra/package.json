@@ -37,7 +37,7 @@
   },
   "scripts": {
     "build": "tsup && pnpm run copy:wasm-dist",
-    "pack": "pnpm pack",
+    "pack": "pnpm run build && pnpm pack",
     "build:full": "pnpm run build:types && pnpm run build:node && pnpm run build:browser && pnpm run copy:wasm-dist",
     "build:types": "tsup src/index.ts --dts --format esm --out-dir dist",
     "build:node": "tsup src/node-entry.ts --format esm --dts --platform node --out-dir dist",
@@ -53,5 +53,8 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
+  },
+  "dependencies": {
+    "yaml": "^2.8.3"
   }
 }

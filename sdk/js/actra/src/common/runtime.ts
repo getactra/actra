@@ -10,10 +10,10 @@ import { DecisionEmitter, DecisionObserver } from "./events"
 
 function normalizeArgs(
   args: any[],
-  options?: { fields?: string[] }
+  options?: { fields?: string[]; schema?: any; actionName?: string }
 ): Record<string, any> {
 
-  // fields mapping (primary path)
+  //explicit fields (highest priority)
   if (options?.fields) {
     const result: Record<string, any> = {}
 
@@ -24,7 +24,24 @@ function normalizeArgs(
     return result
   }
 
-  //object-style call
+  //schema-driven mapping
+  if (options?.schema && options?.actionName) {
+    const actionSchema = options.schema.actions?.[options.actionName]
+
+    if (actionSchema?.fields) {
+      const fieldNames = Object.keys(actionSchema.fields)
+
+      const result: Record<string, any> = {}
+
+      for (let i = 0; i < fieldNames.length; i++) {
+        result[fieldNames[i]] = args[i]
+      }
+
+      return result
+    }
+  }
+
+  //object-style input
   if (args.length === 1 && typeof args[0] === "object") {
     return args[0]
   }
@@ -184,12 +201,24 @@ export class ActraRuntime {
     ctx?: any
   ): boolean {
 
-    const decision = this.evaluate(
-      { type: actionName, ...(args || {}) },
-      ctx
-    )
+    const action = this.buildAction(actionName, args || {}, { ctx })
+
+    const decision = this.evaluate(action, ctx)
 
     return decision.effect === "allow"
+  }
+
+  block(
+    actionName: string,
+    args?: Record<string, any>,
+    ctx?: any
+  ): boolean {
+
+    const action = this.buildAction(actionName, args || {}, { ctx })
+
+    const decision = this.evaluate(action, ctx)
+
+    return decision.effect === "block"
   }
 
   admit(
@@ -214,12 +243,17 @@ export class ActraRuntime {
     return async function (this: any, ...args: any[]) {
 
       //normalize kwargs
-      const kwargs = normalizeArgs(args, options)
+      const kwargs = normalizeArgs(args, {
+        fields: options?.fields,
+        schema: runtime.policy.getSchema(),
+        actionName: actionName
+      })
 
       //build action, py like
       const action = runtime.buildAction(actionName, kwargs, {
         builder: options?.builder,
-        ctx: this
+        ctx: this,
+        schema: runtime.policy.getSchema()
       })
 
       const decision = runtime.evaluate(action, this)
@@ -256,12 +290,60 @@ export class ActraRuntime {
 
       const action = runtime.buildAction(actionName, kwargs, {
         builder: options?.builder,
-        ctx: this
+        ctx: this,
+        schema: runtime.policy.getSchema()
       })
 
       runtime.evaluate(action, this)
 
       return fn.apply(this, args)
     }
+  }
+
+  explain(action: Action, ctx?: any): Decision {
+
+    const actor = this.resolveSafe(this.actorResolver, ctx, "Actor")
+    const snapshot = this.resolveSafe(this.snapshotResolver, ctx, "Snapshot")
+
+    const context = {
+      action,
+      actor,
+      snapshot
+    }
+
+    return this.policy.explain(context)
+  }
+
+  explainCall(
+    fn: (...args: any[]) => any,
+    options: {
+      args?: any[]
+      actionName?: string
+      ctx?: any
+    } = {}
+  ): Decision {
+
+    const runtime = this
+
+    const args = options.args || []
+
+    const actionName =
+      options.actionName ||
+      fn.name
+
+    const kwargs = normalizeArgs(args, {
+      schema: runtime.policy.getSchema(),
+      actionName
+    })
+
+    const action = runtime.buildAction(actionName, kwargs, {
+      ctx: options.ctx
+    })
+
+    return runtime.explain(action, options.ctx)
+  }
+
+  action(actionName: string, kwargs: Record<string, any>): Action {
+    return this.buildAction(actionName, kwargs, { ctx: undefined });
   }
 }

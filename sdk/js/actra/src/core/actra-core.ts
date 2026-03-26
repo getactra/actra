@@ -1,6 +1,7 @@
 import { Policy } from "../common/policy"
 import { getEngine, ensureEngineReady } from "../common/engine"
 import { ActraError } from "../common/errors"
+import yaml from "yaml"
 
 export class ActraCore {
 
@@ -29,7 +30,11 @@ export class ActraCore {
         governanceYaml
       )
 
-      return new Policy(compiled)
+      const parsedSchema = schemaYaml
+        ? JSON.parse(JSON.stringify(yaml.parse(schemaYaml)))
+        : undefined
+
+      return new Policy(compiled, parsedSchema)
 
     } catch (err) {
       if (err instanceof ActraError) {

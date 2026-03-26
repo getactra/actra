@@ -5,17 +5,6 @@ Action-Specific Governance
 This example demonstrates how governance policies can apply
 only to specific actions.
 
-Refund policies must include safety rules, but chargeback
-policies are unrestricted.
-"""
-
-"""
-Governance Example
-Action-Specific Governance
-
-This example demonstrates how governance policies can apply
-only to specific actions.
-
 The governance rule requires refund policies to include
 at least one safety block rule.
 

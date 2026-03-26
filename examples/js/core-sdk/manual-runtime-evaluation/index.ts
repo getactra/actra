@@ -1,7 +1,7 @@
-import { Actra, ActraRuntime, ActraPolicyError } from "@getactra/actra";
+import { Actra, ActraRuntime } from "@getactra/actra";
 
 // ------------------------------------------------------------
-// 1. Schema definition
+// 1. Schema
 // ------------------------------------------------------------
 const schemaYaml = `
 version: 1
@@ -21,7 +21,7 @@ snapshot:
 `;
 
 // ------------------------------------------------------------
-// 2. Policy definition
+// 2. Policy
 // ------------------------------------------------------------
 const policyYaml = `
 version: 1
@@ -43,6 +43,7 @@ rules:
 // ------------------------------------------------------------
 // 3. Compile policy
 // ------------------------------------------------------------
+console.log("manual-runtime-evaluation");
 const policy = await Actra.fromStrings(schemaYaml, policyYaml);
 
 // ------------------------------------------------------------
@@ -51,90 +52,41 @@ const policy = await Actra.fromStrings(schemaYaml, policyYaml);
 const runtime = new ActraRuntime(policy);
 
 // ------------------------------------------------------------
-// 5. Register context resolvers
+// 5. Context resolvers
 // ------------------------------------------------------------
 runtime.setActorResolver(() => ({ role: "support" }));
 runtime.setSnapshotResolver(() => ({ fraud_flag: false }));
 
 // ------------------------------------------------------------
-// 6. Protect a function with Actra
+// 6. Build an action manually
 // ------------------------------------------------------------
-function refund(amount: number) {
-  console.log("Refund executed:", amount);
-  return amount;
-}
+// Typical sources:
+// - HTTP requests
+// - tool calls
+// - message queues
 
-//pass options object
-const protectedRefund = runtime.admit(
-  "refund",
-  refund,
-);
-
-// ------------------------------------------------------------
-// 7. Assertion helper
-// ------------------------------------------------------------
-function assert(condition: boolean, message: string) {
-  if (!condition) {
-    throw new Error("ERROR: " + message);
-  }
-}
+const action = {
+  type: "refund",
+  amount: 200
+};
 
 // ------------------------------------------------------------
-// 8. Execute
+// 7. Evaluate the action
 // ------------------------------------------------------------
-async function run() {
-  console.log("\n--- Allowed call ---");
-  await protectedRefund(200);
+const result = runtime.evaluate(action);
 
-  console.log("\n--- Blocked call ---");
+console.log("\nEvaluation result:");
+console.log(result);
 
-  let blocked = false;
+// ------------------------------------------------------------
+// 8. Blocked example
+// ------------------------------------------------------------
+const blockedAction = {
+  type: "refund",
+  amount: 1500
+};
 
-  try {
-    await protectedRefund(1500);
-  } catch (e) {
-    if (e instanceof ActraPolicyError) {
-      blocked = true;
-      console.log("Refund blocked by policy");
-      console.log("Rule:", e.matchedRule);
-    } else {
-      throw e; // unexpected error fail fast
-    }
-  }
+const blockedResult = runtime.evaluate(blockedAction);
 
-  // validation
-  assert(blocked, "Expected refund > 1000 to be blocked");
-
-  console.log("\nExample passed");
-}
-
-// runner
-run().catch((err) => {
-  console.error("\nExample failed");
-  console.error(err);
-  process.exit(1);
-});
-
-
-//Simple (fields mapping — recommended default)
-/*function refund(amount: number, currency: string) {}
-
-runtime.admit("refund", refund, {
-  fields: ["amount", "currency"]
-})*/
-
-
-//Advanced - builder override
-/*runtime.admit("refund", refund, {
-  builder: (type, kwargs, ctx) => ({
-    amount: kwargs.amount
-  })
-})*/
-
-
-//Object-style
-/*function refund(input: { amount: number; currency: string }) {}
-
-runtime.admit("refund", refund)
-
-refund({ amount: 200, currency: "USD" })*/
+console.log("\nBlocked evaluation result:");
+console.log(blockedResult);

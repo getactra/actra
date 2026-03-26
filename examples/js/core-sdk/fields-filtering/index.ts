@@ -1,7 +1,7 @@
 import { Actra, ActraRuntime, ActraPolicyError } from "@getactra/actra";
 
 // ------------------------------------------------------------
-// 1. Schema definition
+// 1. Schema
 // ------------------------------------------------------------
 const schemaYaml = `
 version: 1
@@ -21,7 +21,7 @@ snapshot:
 `;
 
 // ------------------------------------------------------------
-// 2. Policy definition
+// 2. Policy
 // ------------------------------------------------------------
 const policyYaml = `
 version: 1
@@ -41,100 +41,54 @@ rules:
 `;
 
 // ------------------------------------------------------------
-// 3. Compile policy
+// 3. Compile policy and create runtime
 // ------------------------------------------------------------
 const policy = await Actra.fromStrings(schemaYaml, policyYaml);
-
-// ------------------------------------------------------------
-// 4. Create runtime
-// ------------------------------------------------------------
 const runtime = new ActraRuntime(policy);
 
-// ------------------------------------------------------------
-// 5. Register context resolvers
-// ------------------------------------------------------------
 runtime.setActorResolver(() => ({ role: "support" }));
 runtime.setSnapshotResolver(() => ({ fraud_flag: false }));
 
 // ------------------------------------------------------------
-// 6. Protect a function with Actra
+// 4. Protect function with field filtering
 // ------------------------------------------------------------
-function refund(amount: number) {
-  console.log("Refund executed:", amount);
-  return amount;
+function refund(amount: number, currency: string) {
+  console.log(`Refund executed: ${amount} ${currency}`);
 }
 
-//pass options object
+//Only "amount" is passed to policy
 const protectedRefund = runtime.admit(
   "refund",
   refund,
+  {
+    fields: ["amount"]
+  }
 );
 
 // ------------------------------------------------------------
-// 7. Assertion helper
-// ------------------------------------------------------------
-function assert(condition: boolean, message: string) {
-  if (!condition) {
-    throw new Error("ERROR: " + message);
-  }
-}
-
-// ------------------------------------------------------------
-// 8. Execute
+// 5. Calls
 // ------------------------------------------------------------
 async function run() {
-  console.log("\n--- Allowed call ---");
-  await protectedRefund(200);
 
-  console.log("\n--- Blocked call ---");
+  console.log("\nAllowed call");
+  await protectedRefund(200, "USD");
 
-  let blocked = false;
+  console.log("\nBlocked call");
 
   try {
-    await protectedRefund(1500);
+    await protectedRefund(1500, "USD");
   } catch (e) {
     if (e instanceof ActraPolicyError) {
-      blocked = true;
       console.log("Refund blocked by policy");
       console.log("Rule:", e.matchedRule);
     } else {
-      throw e; // unexpected error fail fast
+      throw e;
     }
   }
-
-  // validation
-  assert(blocked, "Expected refund > 1000 to be blocked");
-
-  console.log("\nExample passed");
 }
 
-// runner
 run().catch((err) => {
   console.error("\nExample failed");
   console.error(err);
   process.exit(1);
 });
-
-
-//Simple (fields mapping — recommended default)
-/*function refund(amount: number, currency: string) {}
-
-runtime.admit("refund", refund, {
-  fields: ["amount", "currency"]
-})*/
-
-
-//Advanced - builder override
-/*runtime.admit("refund", refund, {
-  builder: (type, kwargs, ctx) => ({
-    amount: kwargs.amount
-  })
-})*/
-
-
-//Object-style
-/*function refund(input: { amount: number; currency: string }) {}
-
-runtime.admit("refund", refund)
-
-refund({ amount: 200, currency: "USD" })*/

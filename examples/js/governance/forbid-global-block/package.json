@@ -1,0 +1,13 @@
+{
+  "name": "forbid-global-block",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx index.ts",
+    "start": "node dist/index.js",
+    "install:sdk": "pnpm add ../../../../sdk/js/actra/getactra-actra-0.1.0.tgz"
+  },
+  "dependencies": {
+    "@getactra/actra": "file:../../../../sdk/js/actra/getactra-actra-0.1.0.tgz"
+  }
+}

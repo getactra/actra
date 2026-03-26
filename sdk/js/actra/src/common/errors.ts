@@ -1,5 +1,10 @@
 import { Decision } from "./types"
 
+export function serializeError(err: unknown): string {
+  if (err instanceof Error) return err.message
+  return String(err)
+}
+
 export class ActraError extends Error {
   constructor(message: string) {
     super(message)
