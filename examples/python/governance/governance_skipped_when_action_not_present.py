@@ -1,5 +1,5 @@
 """
-Test: Governance Action-Specific Rules
+Example: Governance Action-Specific Rules
 
 This test verifies that governance rules targeting specific
 actions are skipped when the policy does not contain rules

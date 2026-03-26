@@ -52,7 +52,9 @@ rules:
     const secured = runtime.admit(
       "refund",
       refund,
-      (args) => ({ amount: args[0] })
+      {
+        fields: ["amount"]
+      }
     );
 
     const result = await secured(100);
@@ -61,7 +63,7 @@ rules:
     expect(result).toBe(100);
   });
 
- it("should block action", async () => {
+  it("should block action", async () => {
     const policy_yaml = `
 version: 1
 rules:
@@ -92,9 +94,12 @@ rules:
     const secured = runtime.admit(
       "refund",
       refund,
-      (args) => ({ amount: args[0] })
+      {
+        fields: ["amount"]
+      }
     );
 
     await expect(secured(5000)).rejects.toThrow("Action blocked");
+    expect(executed).toBe(false);
   });
 });

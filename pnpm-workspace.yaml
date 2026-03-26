@@ -1,0 +1,7 @@
+packages:
+  - "sdk/js/*"
+  - "examples/js/*"
+  - "examples/js/core-sdk/*"
+  - "examples/js/advance/*"
+  - "examples/js/governance/*"
+  - "examples/js/helpers/*"

@@ -1,1 +1,2 @@
-export * from "./node-entry"
+export * from "./browser-entry"
+//export * from "./node-entry"

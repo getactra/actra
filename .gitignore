@@ -39,3 +39,4 @@ dist/
 sdk/js/web/pkg/
 pnpm-lock.yaml
 actra_wasm.wasm
+*.tgz

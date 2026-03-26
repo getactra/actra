@@ -3,52 +3,58 @@
   "version": "0.1.0",
   "description": "Actra JavaScript SDK for server and edge runtimes",
   "type": "module",
-
   "main": "./dist/node-entry.js",
   "module": "./dist/browser-entry.js",
   "types": "./dist/index.d.ts",
-
   "files": [
     "dist"
   ],
-
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "node": "./dist/node-entry.js",
       "browser": "./dist/browser-entry.js",
       "worker": "./dist/browser-entry.js",
       "deno": "./dist/browser-entry.js",
+      "import": "./dist/browser-entry.js",
+      "default": "./dist/browser-entry.js"
+    },
+    "./node": {
+      "types": "./dist/node-entry.d.ts",
       "default": "./dist/node-entry.js"
     }
   },
-
   "sideEffects": false,
-
   "engines": {
     "node": ">=18"
   },
-
   "typesVersions": {
     "*": {
-      "*": ["dist/index.d.ts"]
+      "*": [
+        "dist/index.d.ts"
+      ]
     }
   },
-
   "scripts": {
-    "build": "pnpm run build:node && pnpm run build:browser && pnpm run copy:wasm-dist",
-    "build:node": "tsup src/node-entry.ts --format esm --dts --platform node --out-dir dist --clean",
+    "build": "tsup && pnpm run copy:wasm-dist",
+    "pack": "pnpm run build && pnpm pack",
+    "build:full": "pnpm run build:types && pnpm run build:node && pnpm run build:browser && pnpm run copy:wasm-dist",
+    "build:types": "tsup src/index.ts --dts --format esm --out-dir dist",
+    "build:node": "tsup src/node-entry.ts --format esm --dts --platform node --out-dir dist",
     "build:browser": "tsup src/browser-entry.ts --format esm --platform browser --out-dir dist",
     "copy:wasm-frmtarget": "cp ../../../target/wasm32-unknown-unknown/release/actra_wasm.wasm src/",
     "copy:wasm-dist": "pnpm run copy:wasm-frmtarget && cp src/actra_wasm.wasm dist/",
     "test": "vitest",
     "test:core": "pnpm exec tsx tests/actra-wasm-core.check.ts"
   },
-
   "devDependencies": {
     "ts-node": "^10.9.2",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
+  },
+  "dependencies": {
+    "yaml": "^2.8.3"
   }
 }

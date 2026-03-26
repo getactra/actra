@@ -1,3 +1,25 @@
+### v0.7.2 - 26 March 2026
+- js sdk support for multi runtime, packaging updates
+- js sdk update for parity as per py sdk behavior
+- examples added for js sdk
+- test for js sdk updated
+- added field extraction from schema in js sdk runtime
+- updated js sdk policy, added following :  
+    * `getSchema`
+    * `hasSchema`
+    * `assertEffect`
+    * `evaluateAction`
+    * `explain`
+- updated js sdk runtime, added following :
+    * updated `normalizeArgs` to support schema driven fields mapping & object style input
+    * added `block`
+    * `allow` to support schema driven field mappings
+    * `admit` to support schema driven field mappings
+    * `audit` to support schema driven field mappings
+    * added `explain`
+    * added `explainCall`
+    * added `action`
+
 ### v0.7.1 - 24 March 2026
 - updated loader for multi js runtime support
 - updated js sdk to support multi runtime export as per runtimes
