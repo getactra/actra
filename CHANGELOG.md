@@ -1,3 +1,9 @@
+### v0.7.2 - xxxxx
+- js sdk support for multi runtime, packaging updates
+- js sdk update for parity as per py sdk behavior
+- examples added for js
+- test for js updated
+
 ### v0.7.1 - 24 March 2026
 - updated loader for multi js runtime support
 - updated js sdk to support multi runtime export as per runtimes

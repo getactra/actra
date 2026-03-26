@@ -8,30 +8,29 @@ import {
 import { ActraError, ActraPolicyError } from "./errors"
 import { DecisionEmitter, DecisionObserver } from "./events"
 
-function buildAction(
-  actionName: string,
+function normalizeArgs(
   args: any[],
-  builder?: (args: any[], ctx?: any) => Record<string, any>,
-  ctx?: any
-): Action {
+  options?: { fields?: string[] }
+): Record<string, any> {
 
-  const base: Action = { type: actionName }
+  // fields mapping (primary path)
+  if (options?.fields) {
+    const result: Record<string, any> = {}
 
-  if (!builder) {
-    return base
+    for (let i = 0; i < options.fields.length; i++) {
+      result[options.fields[i]] = args[i]
+    }
+
+    return result
   }
 
-  let mapped: Record<string, any>
+  //object-style call
+  if (args.length === 1 && typeof args[0] === "object") {
+    return args[0]
+  }
 
-  try {
-    mapped = builder(args, ctx)
-  } catch (err) {
-    throw new ActraError(`Action builder failed: ${serializeError(err)}`)
-  }
-  return {
-    ...base,
-    ...mapped
-  }
+  //fallback
+  return {}
 }
 
 function serializeError(err: unknown): string {
@@ -84,6 +83,63 @@ export class ActraRuntime {
 
   setDecisionObserver(observer: DecisionObserver) {
     this.events.setDecisionObserver(observer)
+  }
+
+  buildAction(
+    actionName: string,
+    kwargs: Record<string, any>,
+    options?: {
+      builder?: (
+        actionType: string,
+        kwargs: Record<string, any>,
+        ctx?: any
+      ) => Record<string, any>
+      ctx?: any
+      schema?: any
+      fields?: string[]
+    }
+  ): Action {
+
+    const base: Action = { type: actionName }
+
+    //builder override
+    if (options?.builder) {
+      try {
+        return {
+          ...base,
+          ...options.builder(actionName, kwargs, options.ctx)
+        }
+      } catch (err) {
+        throw new ActraError(`Action builder failed: ${serializeError(err)}`)
+      }
+    }
+
+    let filtered = { ...kwargs }
+
+    // explicit fields filtering
+    if (options?.fields) {
+      const allowed = new Set(options.fields)
+
+      filtered = Object.fromEntries(
+        Object.entries(filtered).filter(([k]) => allowed.has(k))
+      )
+    }
+
+    // schema filtering
+    if (options?.schema?.actions?.[actionName]?.fields) {
+      const schemaFields = new Set(
+        Object.keys(options.schema.actions[actionName].fields)
+      )
+
+      filtered = Object.fromEntries(
+        Object.entries(filtered).filter(([k]) => schemaFields.has(k))
+      )
+    }
+
+    return {
+      ...base,
+      ...filtered
+    }
   }
 
   evaluate(action: Action, ctx?: any): Decision {
@@ -139,7 +195,14 @@ export class ActraRuntime {
   admit(
     actionName: string,
     fn: (...args: any[]) => any,
-    builder?: (args: any[], ctx?: any) => Record<string, any>
+    options?: {
+      builder?: (
+        actionType: string,
+        kwargs: Record<string, any>,
+        ctx?: any
+      ) => Record<string, any>
+      fields?: string[]
+    }
   ): Function {
 
     if (!actionName || typeof actionName !== "string") {
@@ -150,7 +213,14 @@ export class ActraRuntime {
 
     return async function (this: any, ...args: any[]) {
 
-      const action = buildAction(actionName, args, builder, this)
+      //normalize kwargs
+      const kwargs = normalizeArgs(args, options)
+
+      //build action, py like
+      const action = runtime.buildAction(actionName, kwargs, {
+        builder: options?.builder,
+        ctx: this
+      })
 
       const decision = runtime.evaluate(action, this)
 
@@ -168,18 +238,26 @@ export class ActraRuntime {
   audit(
     actionName: string,
     fn: (...args: any[]) => any,
-    builder?: (args: any[], ctx?: any) => Record<string, any>
-  ): Function {
-
-    if (!actionName || typeof actionName !== "string") {
-      throw new ActraError("Invalid action name")
+    options?: {
+      builder?: (
+        actionType: string,
+        kwargs: Record<string, any>,
+        ctx?: any
+      ) => Record<string, any>
+      fields?: string[]
     }
+  ): Function {
 
     const runtime = this
 
     return async function (this: any, ...args: any[]) {
 
-      const action = buildAction(actionName, args, builder, this)
+      const kwargs = normalizeArgs(args, options)
+
+      const action = runtime.buildAction(actionName, kwargs, {
+        builder: options?.builder,
+        ctx: this
+      })
 
       runtime.evaluate(action, this)
 
@@ -187,27 +265,3 @@ export class ActraRuntime {
     }
   }
 }
-
-//Example 
-//Simple Case
-//runtime.admit("transfer", transferFunds)
-
-//Argument mapping
-//runtime.admit(
-//  "transfer",
-//  transferFunds,
-//  (args) => ({
-//    userId: args[0],
-//    amount: args[1]
-//  })
-//)
-
-//context-aware mapping
-//runtime.admit(
-//  "transfer",
-//  transferFunds,
-//  (args, ctx) => ({
-//    userId: ctx.user.id,
-//    amount: args[1]
-//  })
-//)
