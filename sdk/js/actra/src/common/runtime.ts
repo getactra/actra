@@ -13,43 +13,37 @@ function normalizeArgs(
   options?: { fields?: string[]; schema?: any; actionName?: string }
 ): Record<string, any> {
 
-  //explicit fields (highest priority)
+  //object-style (highest priority)
+  if (args.length === 1 && typeof args[0] === "object") {
+    return args[0]
+  }
+
+  //explicit fields
   if (options?.fields) {
     const result: Record<string, any> = {}
-
     for (let i = 0; i < options.fields.length; i++) {
       result[options.fields[i]] = args[i]
     }
-
     return result
   }
 
   //schema-driven mapping
   if (options?.schema && options?.actionName) {
     const actionSchema = options.schema.actions?.[options.actionName]
-
     if (actionSchema?.fields) {
       const fieldNames = Object.keys(actionSchema.fields)
-
       const result: Record<string, any> = {}
-
       for (let i = 0; i < fieldNames.length; i++) {
         result[fieldNames[i]] = args[i]
       }
-
       return result
     }
   }
 
-  //object-style input
-  if (args.length === 1 && typeof args[0] === "object") {
-    return args[0]
-  }
-
-  //fallback
   return {}
 }
 
+// utils
 function serializeError(err: unknown): string {
   if (err instanceof Error) {
     return `${err.name}: ${err.message}`
@@ -62,6 +56,7 @@ function serializeError(err: unknown): string {
   }
 }
 
+// runtime class
 export class ActraRuntime {
 
   private policy: Policy
@@ -69,27 +64,11 @@ export class ActraRuntime {
   private snapshotResolver?: (ctx: any) => Snapshot
   private events = new DecisionEmitter()
 
-  private resolveSafe<T>(
-    resolver: ((ctx: any) => T) | undefined,
-    ctx: any,
-    label: string
-  ): T {
-
-    if (!resolver) {
-      return {} as T
-    }
-
-    try {
-      return resolver(ctx) || {} as T
-    } catch (err) {
-      throw new ActraError(`Resolver failed: ${serializeError(err)}`)
-    }
-  }
-
   constructor(policy: Policy) {
     this.policy = policy
   }
 
+  // resolvers
   setActorResolver(resolver: (ctx: any) => Actor) {
     this.actorResolver = resolver
   }
@@ -102,6 +81,55 @@ export class ActraRuntime {
     this.events.setDecisionObserver(observer)
   }
 
+  private resolveSafe<T>(
+    resolver: ((ctx: any) => T) | undefined,
+    ctx: any
+  ): T {
+    if (!resolver) return {} as T
+
+    try {
+      return resolver(ctx) || {} as T
+    } catch (err) {
+      throw new ActraError(`Resolver failed: ${serializeError(err)}`)
+    }
+  }
+
+  // core pipeline
+  private processAction(
+    actionName: string,
+    args: any[],
+    ctx: any,
+    options?: {
+      builder?: (
+        actionType: string,
+        kwargs: Record<string, any>,
+        ctx?: any
+      ) => Record<string, any>
+      fields?: string[]
+    }
+  ): { action: Action; decision: Decision } {
+
+    const schema = this.policy.getSchema()
+
+    const kwargs = normalizeArgs(args, {
+      fields: options?.fields,
+      schema,
+      actionName
+    })
+
+    const action = this.buildAction(actionName, kwargs, {
+      builder: options?.builder,
+      ctx,
+      schema,
+      fields: options?.fields
+    })
+
+    const decision = this.evaluate(action, ctx)
+
+    return { action, decision }
+  }
+
+  // action builder
   buildAction(
     actionName: string,
     kwargs: Record<string, any>,
@@ -133,21 +161,19 @@ export class ActraRuntime {
 
     let filtered = { ...kwargs }
 
-    // explicit fields filtering
+    // explicit fields
     if (options?.fields) {
       const allowed = new Set(options.fields)
-
       filtered = Object.fromEntries(
         Object.entries(filtered).filter(([k]) => allowed.has(k))
       )
     }
 
-    // schema filtering
+    // schema filter
     if (options?.schema?.actions?.[actionName]?.fields) {
       const schemaFields = new Set(
         Object.keys(options.schema.actions[actionName].fields)
       )
-
       filtered = Object.fromEntries(
         Object.entries(filtered).filter(([k]) => schemaFields.has(k))
       )
@@ -159,12 +185,14 @@ export class ActraRuntime {
     }
   }
 
+  //evaluation
   evaluate(action: Action, ctx?: any): Decision {
 
-    const actor = this.resolveSafe(this.actorResolver, ctx, "Actor")
-    const snapshot = this.resolveSafe(this.snapshotResolver, ctx, "Snapshot")
+    const actor = this.resolveSafe(this.actorResolver, ctx)
+    const snapshot = this.resolveSafe(this.snapshotResolver, ctx)
 
     const start = Date.now()
+
     let decision: Decision
     try {
       decision = this.policy.evaluate({
@@ -173,10 +201,12 @@ export class ActraRuntime {
         snapshot
       })
     } catch (err) {
-      throw new ActraPolicyError(`Policy evaluation failed: ${serializeError(err)}`)
+      throw new ActraPolicyError(
+        `Policy evaluation failed: ${serializeError(err)}`
+      )
     }
+
     const end = Date.now()
-    const duration = end - start
 
     try {
       if (this.events.hasDecisionObserver()) {
@@ -185,7 +215,7 @@ export class ActraRuntime {
           decision,
           context: { action, actor, snapshot },
           timestamp: end,
-          durationMs: duration
+          durationMs: end - start
         })
       }
     } catch {
@@ -195,32 +225,27 @@ export class ActraRuntime {
     return decision
   }
 
-  allow(
-    actionName: string,
-    args?: Record<string, any>,
-    ctx?: any
-  ): boolean {
-
-    const action = this.buildAction(actionName, args || {}, { ctx })
-
-    const decision = this.evaluate(action, ctx)
-
+  //helpers
+  allow(actionName: string, args?: any, ctx?: any): boolean {
+    const { decision } = this.processAction(actionName, [args], ctx)
     return decision.effect === "allow"
   }
 
-  block(
-    actionName: string,
-    args?: Record<string, any>,
-    ctx?: any
-  ): boolean {
-
-    const action = this.buildAction(actionName, args || {}, { ctx })
-
-    const decision = this.evaluate(action, ctx)
-
+  block(actionName: string, args?: any, ctx?: any): boolean {
+    const { decision } = this.processAction(actionName, [args], ctx)
     return decision.effect === "block"
   }
 
+  requiresApproval(actionName: string, args?: any, ctx?: any): boolean {
+    const { decision } = this.processAction(actionName, [args], ctx)
+    return decision.effect === "require_approval"
+  }
+
+  check(actionName: string, args?: any, ctx?: any): Decision {
+    return this.processAction(actionName, [args], ctx).decision
+  }
+
+  //enforcement
   admit(
     actionName: string,
     fn: (...args: any[]) => any,
@@ -234,33 +259,27 @@ export class ActraRuntime {
     }
   ): Function {
 
-    if (!actionName || typeof actionName !== "string") {
-      throw new ActraError("Invalid action name")
-    }
-
     const runtime = this
 
     return async function (this: any, ...args: any[]) {
 
-      //normalize kwargs
-      const kwargs = normalizeArgs(args, {
-        fields: options?.fields,
-        schema: runtime.policy.getSchema(),
-        actionName: actionName
-      })
+      const { decision } = runtime.processAction(
+        actionName,
+        args,
+        this,
+        options
+      )
 
-      //build action, py like
-      const action = runtime.buildAction(actionName, kwargs, {
-        builder: options?.builder,
-        ctx: this,
-        schema: runtime.policy.getSchema()
-      })
-
-      const decision = runtime.evaluate(action, this)
-
-      if (decision.effect !== "allow") {
+      if (decision.effect === "block") {
         throw new ActraPolicyError(
           `Action blocked (rule: ${decision.matched_rule || "unknown"})`,
+          decision
+        )
+      }
+
+      if (decision.effect === "require_approval") {
+        throw new ActraPolicyError(
+          `Action requires approval (rule: ${decision.matched_rule || "unknown"})`,
           decision
         )
       }
@@ -269,6 +288,7 @@ export class ActraRuntime {
     }
   }
 
+  //audit (non-blocking)
   audit(
     actionName: string,
     fn: (...args: any[]) => any,
@@ -286,32 +306,23 @@ export class ActraRuntime {
 
     return async function (this: any, ...args: any[]) {
 
-      const kwargs = normalizeArgs(args, options)
-
-      const action = runtime.buildAction(actionName, kwargs, {
-        builder: options?.builder,
-        ctx: this,
-        schema: runtime.policy.getSchema()
-      })
-
-      runtime.evaluate(action, this)
+      runtime.processAction(actionName, args, this, options)
 
       return fn.apply(this, args)
     }
   }
 
+  //explain
   explain(action: Action, ctx?: any): Decision {
 
-    const actor = this.resolveSafe(this.actorResolver, ctx, "Actor")
-    const snapshot = this.resolveSafe(this.snapshotResolver, ctx, "Snapshot")
+    const actor = this.resolveSafe(this.actorResolver, ctx)
+    const snapshot = this.resolveSafe(this.snapshotResolver, ctx)
 
-    const context = {
+    return this.policy.explain({
       action,
       actor,
       snapshot
-    }
-
-    return this.policy.explain(context)
+    })
   }
 
   explainCall(
@@ -323,27 +334,28 @@ export class ActraRuntime {
     } = {}
   ): Decision {
 
-    const runtime = this
-
     const args = options.args || []
+    const actionName = options.actionName || fn.name
 
-    const actionName =
-      options.actionName ||
-      fn.name
+    const schema = this.policy.getSchema()
 
     const kwargs = normalizeArgs(args, {
-      schema: runtime.policy.getSchema(),
+      schema,
       actionName
     })
 
-    const action = runtime.buildAction(actionName, kwargs, {
-      ctx: options.ctx
+    const action = this.buildAction(actionName, kwargs, {
+      ctx: options.ctx,
+      schema
     })
 
-    return runtime.explain(action, options.ctx)
+    return this.explain(action, options.ctx)
   }
 
+  //manual action
   action(actionName: string, kwargs: Record<string, any>): Action {
-    return this.buildAction(actionName, kwargs, { ctx: undefined });
+    return this.buildAction(actionName, kwargs, {
+      schema: this.policy.getSchema()
+    })
   }
 }

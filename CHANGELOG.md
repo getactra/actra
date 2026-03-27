@@ -1,3 +1,11 @@
+### v0.7.3 - 27 March 2026
+- added helper `requiresApproval` for js
+- added helper `requires_approval` for python
+- added examples for js sdk
+    * helpers
+    * runtime
+- added `requires_approval` example for python
+
 ### v0.7.2 - 26 March 2026
 - js sdk support for multi runtime, packaging updates
 - js sdk update for parity as per py sdk behavior

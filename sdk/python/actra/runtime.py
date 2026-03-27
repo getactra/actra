@@ -339,6 +339,16 @@ class ActraRuntime:
         decision = self.evaluate(action, ctx)
 
         return decision.get("effect") == "block"
+
+    def requires_approval(self, action_type: str, ctx: Context = None, **fields) -> bool:
+        """
+        Convenience helper that returns True if the policy requires approval.
+        """
+
+        action = self.action(action_type, **fields)
+        decision = self.evaluate(action, ctx)
+
+        return decision.get("effect") == "require_approval"
     
     # Action construction
     def action(self, action_type: str, **fields) -> Action:
@@ -549,7 +559,16 @@ class ActraRuntime:
         context = self.build_context(action, ctx)
         result = self.evaluate(action, ctx)
 
-        if result.get("effect") == "block":
+        effect = result.get("effect")
+
+        if effect == "block":
+            raise ActraPolicyError(
+                action_type=act,
+                decision=result,
+                context=context
+            )
+
+        if effect == "require_approval":
             raise ActraPolicyError(
                 action_type=act,
                 decision=result,

@@ -1,7 +1,10 @@
 packages:
-  - "sdk/js/*"
+  - "sdk/js/actra"
+  - "sdk/js/mcp"
   - "examples/js/*"
   - "examples/js/core-sdk/*"
   - "examples/js/advance/*"
   - "examples/js/governance/*"
   - "examples/js/helpers/*"
+  - "examples/js/runtime/*"  
+  - "examples/js/mcp/*" 
