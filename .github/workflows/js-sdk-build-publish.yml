@@ -1,0 +1,168 @@
+name: Build and Publish Node SDK
+
+on:
+  push:
+    branches:
+      - "js-sdk-*"
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build:
+    name: Build and Test Package
+    runs-on: ubuntu-latest
+
+    steps:
+     
+      - uses: actions/checkout@v6
+
+      - name: Verify Cargo and package.json versions match
+        working-directory: sdk/js/actra
+        run: |
+          JS_VERSION=$(node -p "require('./package.json').version")
+          CARGO_VERSION=$(grep '^version' ../../../Cargo.toml | head -n1 | cut -d '"' -f2)
+
+          echo "JS version: $JS_VERSION"
+          echo "Cargo version: $CARGO_VERSION"
+
+          test "$JS_VERSION" = "$CARGO_VERSION"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+
+      - name: Add WASM target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: sdk/js/actra
+
+      - name: Build
+        run: pnpm build
+        working-directory: sdk/js/actra
+
+      - name: Verify WASM exists before packing
+        working-directory: sdk/js/actra
+        run: |
+          test -f dist/actra_wasm.wasm || (echo "WASM missing before pack" && exit 1)
+
+      - name: Pack package (simulate publish)
+        run: pnpm pack
+        working-directory: sdk/js/actra
+
+      - name: Verify WASM included in package
+        working-directory: sdk/js/actra
+        run: |
+          FILE=$(ls *.tgz | head -n 1)
+          echo "Checking package: $FILE"
+          tar -tf "$FILE" | grep -q "dist/actra_wasm.wasm" || (echo "Expected WASM not found in dist/" && exit 1)
+          echo "WASM file found in package"
+
+      - name: Test install from tarball
+        working-directory: sdk/js/actra
+        run: |
+          mkdir test-install
+          cd test-install
+          npm init -y
+          npm install ../*.tgz
+          node -e "require('@getactra/actra')"
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-tgz
+          path: sdk/js/actra/*.tgz
+
+  publish_test:
+    name: Publish to npm (beta)
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 9
+
+      - name: Setup Node with npm registry
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: package-tgz
+          path: sdk/js/actra
+
+      - name: Dry run publish
+        run: pnpm publish *.tgz --dry-run
+        working-directory: sdk/js/actra
+
+      - name: Publish to npm (beta tag)
+        run: pnpm publish *.tgz --tag beta --access public --ignore-scripts
+        working-directory: sdk/js/actra
+
+  publish:
+    name: Publish to npm (production)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 9
+
+      - name: Setup Node with npm registry
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: package-tgz
+          path: sdk/js/actra
+
+      - name: Verify tag matches package.json version
+        working-directory: sdk/js/actra
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Tag: $TAG"
+          echo "Package version: $VERSION"
+          test "$TAG" = "$VERSION"
+
+      - name: Dry run publish
+        run: pnpm publish *.tgz --dry-run --ignore-scripts
+
+      - name: Publish to npm
+        run: pnpm publish *.tgz --access public --ignore-scripts
+        working-directory: sdk/js/actra

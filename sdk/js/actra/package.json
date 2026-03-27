@@ -1,6 +1,6 @@
 {
   "name": "@getactra/actra",
-  "version": "0.1.0",
+  "version": "0.7.4",
   "description": "Actra JavaScript SDK for server and edge runtimes",
   "type": "module",
   "main": "./dist/node-entry.js",
@@ -36,8 +36,9 @@
     }
   },
   "scripts": {
-    "build": "tsup && pnpm run copy:wasm-dist",
-    "pack": "pnpm run build && pnpm pack",
+    "build": "pnpm run build:wasm && tsup && pnpm run copy:wasm-dist",
+    "prepack": "pnpm run build:wasm && pnpm run build",
+    "build:wasm": "cargo build --release --target wasm32-unknown-unknown --manifest-path ../../../bindings/wasm/Cargo.toml",
     "build:types": "tsup src/index.ts --dts --format esm --out-dir dist",
     "build:node": "tsup src/node-entry.ts --format esm --dts --platform node --out-dir dist",
     "build:browser": "tsup src/browser-entry.ts --format esm --platform browser --out-dir dist",
