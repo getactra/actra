@@ -8,9 +8,9 @@ on:
       - "v*"
   workflow_dispatch:
 
-#permissions:
-#  id-token: write
-#  contents: read
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   build:
@@ -140,8 +140,8 @@ jobs:
       - name: Publish to npm (beta tag)
         run: pnpm publish *.tgz --tag beta --access public --provenance --ignore-scripts --no-git-checks
         working-directory: sdk/js/actra
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        #env:
+        #  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
 
   publish:
@@ -185,5 +185,5 @@ jobs:
       - name: Publish to npm
         run: pnpm publish *.tgz --access public --provenance --ignore-scripts --no-git-checks
         working-directory: sdk/js/actra
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        #env:
+        #  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
