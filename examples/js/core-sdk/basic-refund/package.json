@@ -1,5 +1,5 @@
 {
-  "name": "actra-build-action-example",
+  "name": "basic-refund",
   "private": true,
   "type": "module",
   "scripts": {

@@ -25,9 +25,10 @@ export CIBW_ENVIRONMENT="PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1"
 cibuildwheel sdk/python --output-dir wheelhouse
 
 echo "Installing built wheel in temp venv..."
-pip install wheelhouse/*.whl
+pip install --force-reinstall wheelhouse/*.whl
 
 echo "Verifying import..."
 python -c "import actra; print('actra imported from:', actra.__file__)"
+python -c "import actra; print('actra version:', getattr(actra, '__version__', 'unknown'))"
 
 echo "Local build test passed!"

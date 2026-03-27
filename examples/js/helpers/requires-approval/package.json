@@ -1,5 +1,5 @@
 {
-  "name": "allow-helper",
+  "name": "requires-approval",
   "private": true,
   "type": "module",
   "scripts": {
