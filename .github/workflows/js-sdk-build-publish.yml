@@ -146,7 +146,7 @@ jobs:
 
   publish:
     name: Publish to npm (production)
-    #if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
 
