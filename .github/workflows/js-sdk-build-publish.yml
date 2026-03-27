@@ -179,8 +179,8 @@ jobs:
           echo "Package version: $VERSION"
           test "$TAG" = "$VERSION"
 
-      - name: Dry run publish
-        run: pnpm publish *.tgz --dry-run --ignore-scripts --no-git-checks
+     # - name: Dry run publish
+     #   run: pnpm publish *.tgz --dry-run --ignore-scripts --no-git-checks
 
       - name: Publish to npm
         run: pnpm publish *.tgz --access public --ignore-scripts --no-git-checks
