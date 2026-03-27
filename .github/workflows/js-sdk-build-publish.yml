@@ -52,7 +52,7 @@ jobs:
         run: rustup target add wasm32-unknown-unknown
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
         working-directory: sdk/js/actra
 
       - name: Build
