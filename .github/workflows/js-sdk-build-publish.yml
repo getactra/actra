@@ -8,9 +8,9 @@ on:
       - "v*"
   workflow_dispatch:
 
-permissions:
-  id-token: write
-  contents: read
+#permissions:
+#  id-token: write
+#  contents: read
 
 jobs:
   build:
@@ -54,6 +54,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install
         working-directory: sdk/js/actra
+
+      - name: Set beta version
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        working-directory: sdk/js/actra
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BETA_VERSION="${VERSION}-beta.${GITHUB_RUN_NUMBER}"
+      
+          echo "Setting beta version: $BETA_VERSION"
+      
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            pkg.version = '$BETA_VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
 
       - name: Build
         run: pnpm build
@@ -122,8 +138,11 @@ jobs:
         working-directory: sdk/js/actra
 
       - name: Publish to npm (beta tag)
-        run: pnpm publish *.tgz --tag beta --access public --ignore-scripts
+        run: pnpm publish *.tgz --tag beta --access public --ignore-scripts --no-git-checks
         working-directory: sdk/js/actra
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
 
   publish:
     name: Publish to npm (production)
@@ -164,5 +183,7 @@ jobs:
         run: pnpm publish *.tgz --dry-run --ignore-scripts
 
       - name: Publish to npm
-        run: pnpm publish *.tgz --access public --ignore-scripts
+        run: pnpm publish *.tgz --access public --ignore-scripts --no-git-checks
         working-directory: sdk/js/actra
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
