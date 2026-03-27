@@ -36,7 +36,7 @@
     }
   },
   "scripts": {
-    "build": "tsup && pnpm run copy:wasm-dist",
+    "build": "pnpm run build:wasm && tsup && pnpm run copy:wasm-dist",
     "prepack": "pnpm run build:wasm && pnpm run build",
     "build:wasm": "cargo build --release --target wasm32-unknown-unknown --manifest-path ../../../bindings/wasm/Cargo.toml",
     "build:types": "tsup src/index.ts --dts --format esm --out-dir dist",
