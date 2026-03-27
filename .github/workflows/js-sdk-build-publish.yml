@@ -55,6 +55,22 @@ jobs:
         run: pnpm install
         working-directory: sdk/js/actra
 
+      - name: Set beta version
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        working-directory: sdk/js/actra
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BETA_VERSION="${VERSION}-beta.${GITHUB_RUN_NUMBER}"
+      
+          echo "Setting beta version: $BETA_VERSION"
+      
+          node -e "
+            const fs = require('fs');
+            const pkg = require('./package.json');
+            pkg.version = '$BETA_VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
+          "
+
       - name: Build
         run: pnpm build
         working-directory: sdk/js/actra
@@ -104,18 +120,6 @@ jobs:
         uses: pnpm/action-setup@v5
         with:
           version: 9
-          
-      - name: Set beta version
-        working-directory: sdk/js/actra
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          BETA_VERSION="${VERSION}-beta.${GITHUB_RUN_NUMBER}"
-          node -e "
-            const fs = require('fs');
-            const pkg = require('./package.json');
-            pkg.version = '$BETA_VERSION';
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2));
-          "
 
       - name: Setup Node with npm registry
         uses: actions/setup-node@v6
