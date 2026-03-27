@@ -8,12 +8,18 @@ on:
       - "v*"
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build:
     name: Build and Test Package
     runs-on: ubuntu-latest
 
     steps:
+     
+      - uses: actions/checkout@v6
 
       - name: Verify Cargo and package.json versions match
         working-directory: sdk/js/actra
@@ -26,15 +32,13 @@ jobs:
 
           test "$JS_VERSION" = "$CARGO_VERSION"
 
-      - uses: actions/checkout@v4
-
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v5
         with:
           version: 9
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
 
@@ -94,21 +98,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v5
         with:
           version: 9
 
       - name: Setup Node with npm registry
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
 
       - name: Download package artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: package-tgz
           path: sdk/js/actra
@@ -120,8 +124,6 @@ jobs:
       - name: Publish to npm (beta tag)
         run: pnpm publish *.tgz --tag beta --access public --ignore-scripts
         working-directory: sdk/js/actra
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   publish:
     name: Publish to npm (production)
@@ -130,21 +132,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v3
+        uses: pnpm/action-setup@v5
         with:
           version: 9
 
       - name: Setup Node with npm registry
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 20
           registry-url: https://registry.npmjs.org/
 
       - name: Download package artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: package-tgz
           path: sdk/js/actra
@@ -164,5 +166,3 @@ jobs:
       - name: Publish to npm
         run: pnpm publish *.tgz --access public --ignore-scripts
         working-directory: sdk/js/actra
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
