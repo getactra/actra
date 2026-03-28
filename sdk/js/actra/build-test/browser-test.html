@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Actra Browser Validation</title>
+</head>
+<body>
+  <h1>Actra Browser Validation</h1>
+  <pre id="output">Loading...</pre>
+
+  <script type="module">
+    import { Actra } from "../dist/browser-entry.js";
+
+    const output = document.getElementById("output");
+
+    async function run() {
+      try {
+        const version = await Actra.compilerVersion();
+        output.textContent = `Compiler version: ${version}`;
+        console.log("Actra compiler version:", version);
+      } catch (err) {
+        output.textContent = `ERROR: ${err.message || err}`;
+        console.error(err);
+      }
+    }
+
+    run();
+  </script>
+</body>
+</html>

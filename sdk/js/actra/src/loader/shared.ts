@@ -73,16 +73,12 @@ export async function loadActraWasmShared(
 
     // URL / string
     else if (typeof input === "string" || input instanceof URL) {
-      const isHttp =
-        (typeof input === "string" &&
-          (input.startsWith("http://") || input.startsWith("https://"))) ||
-        (input instanceof URL &&
-          (input.protocol === "http:" || input.protocol === "https:"));
+      const fetchFn = env.fetch;
 
-      // fetch path
-      if (isHttp && env.fetch) {
+      // browser / worker / edge fetch path
+      if (fetchFn) {
         try {
-          const res = await env.fetch(input);
+          const res = await fetchFn(input);
           return loadActraWasmShared(res, env);
         } catch (err) {
           if (!(err instanceof TypeError)) {
@@ -91,7 +87,7 @@ export async function loadActraWasmShared(
         }
       }
 
-      // fs path
+      // node fs path
       if (env.readFile) {
         try {
           const bytes = await env.readFile(input);
