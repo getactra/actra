@@ -99,6 +99,13 @@ pub enum ConditionAst {
 /// Atomic condition.
 ///
 /// Represents a single comparison expression:
+/// Current supported operator 
+///     "equals" 
+///     "not_equals"
+///     "greater_than"
+///     "less_than"
+///     "in"
+///     "not_in"
 ///
 /// `<subject> <operator> <value>`
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,7 +113,7 @@ pub struct AtomicConditionAst {
     /// Left-hand side subject reference.
     pub subject: SubjectAst,
 
-    /// Operator symbol (validated later by compiler).
+    /// Operator (validated later by compiler).
     pub operator: String,
 
     /// Right-hand side value (literal or subject reference).

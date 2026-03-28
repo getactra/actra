@@ -1,3 +1,9 @@
+### v0.7.5 - 28 March 2026
+- browser load js sdk bug fix
+ 
+### v0.7.4 - 28 March 2026
+- publish js sdk to npm
+
 ### v0.7.3 - 27 March 2026
 - added helper `requiresApproval` for js
 - added helper `requires_approval` for python
@@ -59,7 +65,7 @@
 ### v0.5.1
 - wasm bindings added
 
-### v5.0 
+### v0.5.0 
 - Support for MCP, Agents and LLM integrations in Python SDK
 
 ### v0.4.0 & Earlier
