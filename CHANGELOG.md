@@ -1,5 +1,11 @@
-### v0.7.5 - 28 March 2026
+### v0.7.7 - 28 March 2026
 - browser load js sdk bug fix
+
+### v0.7.6 - 28 March 2026
+- publish js sdk to npm
+
+### v0.7.5 - 28 March 2026
+- publish js sdk to npm
  
 ### v0.7.4 - 28 March 2026
 - publish js sdk to npm
