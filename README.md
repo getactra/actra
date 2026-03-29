@@ -451,7 +451,7 @@ Actra also supports **governance policies**, which validate operational policies
 
 ## Documentation
 
-Full documentation available at https://docs.actra.com
+Full documentation available at https://docs.actra.dev
 
 ---
 
