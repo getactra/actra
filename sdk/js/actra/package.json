@@ -1,6 +1,6 @@
 {
   "name": "@getactra/actra",
-  "version": "0.7.7",
+  "version": "0.7.8",
   "description": "Actra JavaScript SDK for server and edge runtimes",
   "type": "module",
   "main": "./dist/node-entry.js",
