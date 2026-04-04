@@ -1,3 +1,7 @@
+### v0.7.8 - 04 Apr 2026
+- WASM : updated bindings to support RwLock & slab for O(1) allocation and removed mutex
+- WASM : hard coded max instance size to 2000 for security 
+  
 ### v0.7.7 - 28 March 2026
 - browser load js sdk bug fix
 

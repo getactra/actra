@@ -12,11 +12,11 @@
 //! All validation and evaluation logic resides in `actra-core`.
 
 use serde::{Deserialize, Serialize};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{RwLock, OnceLock};
 use std::sync::Arc;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::cell::RefCell;
-
+use slab::Slab;
 
 use actra::ast::PolicyAst;
 use actra::compiler::{compile_policy, compile_with_governance};
@@ -26,8 +26,7 @@ use actra::ir::{CompiledPolicy, Effect};
 use actra::schema::{Schema, SchemaAst};
 use actra::compiler_version as core_compiler_version;
 
-
-
+const MAX_INSTANCES: usize = 2000;
 
 fn safe_exec<T, F>(f: F) -> u64
 where
@@ -52,10 +51,10 @@ pub extern "C" fn actra_free(instance_id: i32) {
             return;
         }
 
-        let mut instances = get_instances().lock().unwrap();
+        let mut instances = get_instances().write().unwrap();
 
-        if let Some(slot) = instances.get_mut(instance_id as usize) {
-            *slot = None;
+        if instances.contains(instance_id as usize) {
+            instances.remove(instance_id as usize);
         }
     }));
 }
@@ -148,11 +147,10 @@ struct ActraInstance {
 //Allows freeing slots without shifting indices
 //Prevents ID corruption
 //Keeps instance IDs stable
-// TODO: Replace Vec<Option<...>> with Slab for O(1) allocation and cleaner semantics
-static INSTANCES: OnceLock<Mutex<Vec<Option<ActraInstance>>>> = OnceLock::new();
+static INSTANCES: OnceLock<RwLock<Slab<ActraInstance>>> = OnceLock::new();
 
-fn get_instances() -> &'static Mutex<Vec<Option<ActraInstance>>> {
-    INSTANCES.get_or_init(|| Mutex::new(Vec::new()))
+fn get_instances() -> &'static RwLock<Slab<ActraInstance>> {
+    INSTANCES.get_or_init(|| RwLock::new(Slab::new()))
 }
 
 #[no_mangle]
@@ -178,21 +176,18 @@ pub extern "C" fn actra_create(
             governance_yaml,
         )?;
 
-        let mut instances = get_instances().lock().unwrap();
+        let mut instances = get_instances().write().unwrap();
 
-        //Slot reuse
+        if instances.len() >= MAX_INSTANCES {
+            return Err("instance limit reached".to_string());
+        }
+
         let instance = ActraInstance {
             compiled_policy: Arc::new(compiled_policy),
         };
-
-        if let Some((idx, slot)) = instances.iter_mut().enumerate().find(|(_, s)| s.is_none()) {
-            *slot = Some(instance);
-            Ok(idx.to_string())
-        } else {
-            instances.push(Some(instance));
-            Ok((instances.len() - 1).to_string())
-        }
         
+        let id = instances.insert(instance);
+        Ok(id.to_string())
     })
 }
 
@@ -201,39 +196,37 @@ pub extern "C" fn actra_evaluate(
     instance_id: i32,
     input_buf: u64,
 ) -> u64 {
-safe_exec(|| {
+    safe_exec(|| {
 
-    if instance_id < 0 {
-        return Err("invalid instance_id".to_string());
-    }
-
-    let input_str = read_buffer(input_buf, "input")?;
-
-    let input: JsEvaluationInput = 
-        serde_json::from_str(input_str).map_err(|e| e.to_string())?;
-
-    let compiled_policy = {
-        let instances = get_instances().lock().unwrap();
-
-        match instances.get(instance_id as usize) {
-            Some(Some(i)) => Arc::clone(&i.compiled_policy),
-            _ => return Err("invalid instance_id".to_string()),
+        if instance_id < 0 {
+            return Err("invalid instance_id".to_string());
         }
-    };
 
-    let eval_input = EvaluationInput {
-        action: input.action,
-        actor: input.actor,
-        snapshot: input.snapshot,
-    };
+        let input_str = read_buffer(input_buf, "input")?;
 
-    let result = evaluate(compiled_policy.as_ref(), &eval_input);
+        let input: JsEvaluationInput = 
+            serde_json::from_str(input_str).map_err(|e| e.to_string())?;
 
-    Ok(JsEvaluationOutput {
-        effect: effect_to_str(&result.effect).to_string(),
-        matched_rule: result.matched_rule.unwrap_or_default(),
+        let instances = get_instances().read().unwrap();
+
+        let compiled_policy = match instances.get(instance_id as usize) {
+            Some(i) => Arc::clone(&i.compiled_policy),
+            None => return Err("invalid instance_id".to_string()),
+        };
+
+        let eval_input = EvaluationInput {
+            action: input.action,
+            actor: input.actor,
+            snapshot: input.snapshot,
+        };
+
+        let result = evaluate(compiled_policy.as_ref(), &eval_input);
+
+        Ok(JsEvaluationOutput {
+            effect: effect_to_str(&result.effect).to_string(),
+            matched_rule: result.matched_rule.unwrap_or_default(),
+        })
     })
-})
 }
 
 #[no_mangle]
@@ -294,21 +287,19 @@ pub extern "C" fn actra_write_buffer(len: usize) -> *mut u8 {
 #[no_mangle]
 pub extern "C" fn actra_policy_hash(instance_id: i32) -> u64 {
     safe_exec(|| {
-    if instance_id < 0 {
-        return Err("invalid instance_id".to_string());
-    }
-
-    let compiled_policy = {
-        let instances = get_instances().lock().unwrap();
-
-        match instances.get(instance_id as usize) {
-            Some(Some(i)) => Arc::clone(&i.compiled_policy),
-            _ => return Err("invalid instance_id".to_string()),
+        if instance_id < 0 {
+            return Err("invalid instance_id".to_string());
         }
-    };
 
-    Ok(compiled_policy.policy_hash())
-})
+        let instances = get_instances().read().unwrap();
+
+        let compiled_policy = match instances.get(instance_id as usize) {
+            Some(i) => Arc::clone(&i.compiled_policy),
+            None => return Err("invalid instance_id".to_string()),
+        };
+
+        Ok(compiled_policy.policy_hash())
+    })
 }
 
 #[no_mangle]
