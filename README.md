@@ -95,7 +95,7 @@ Create a governance policy that ensures all delete actions require approval
 
 ### Use the Claude Skill
 
-[Install Claude Skill](<YOUR_LINK>)
+[Install Claude Skill](https://raw.githubusercontent.com/getactra/actra/main/claude/actra-policy-generator.skill)
 
 ---
 
