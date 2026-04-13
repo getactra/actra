@@ -15,6 +15,7 @@
 [![Bun](https://img.shields.io/badge/Bun-supported-black.svg)](https://bun.sh/)
 [![Browser](https://img.shields.io/badge/browser-supported-brightgreen.svg)]()
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange.svg)](https://workers.cloudflare.com/)
+![Actra Claude](https://img.shields.io/badge/Actra-Claude%20Policy%20Generator-7c3aed)
 [![Vercel Edge](https://img.shields.io/badge/Vercel-Edge-black.svg)](https://vercel.com/)
 [![License](https://img.shields.io/github/license/getactra/actra)](https://github.com/getactra/actra/blob/main/LICENSE)
 
@@ -53,6 +54,10 @@ Python • JavaScript • CLI
 
 ![MCP Demo](doc/mcp-demo.gif)
 
+### An AI agent attempted to call an MCP tool.
+
+Actra evaluated policy and **blocked the unsafe operation before execution**.
+
 ## Try in 30 seconds
 
 Run Actra directly in your browser:
@@ -61,9 +66,36 @@ Run Actra directly in your browser:
 
 No setup required. Uses the real WASM engine.
 
-### An AI agent attempted to call an MCP tool.
+---
 
-Actra evaluated policy and **blocked the unsafe operation before execution**.
+## Generate Policies with Claude (AI-assisted)
+
+Actra provides a **Claude Skill** to help you generate:
+
+- policy YAML
+- schema definitions
+- governance rules
+- real-world policy patterns
+
+### What it can do
+
+- Convert natural language to Actra policies
+- Suggest safe policy patterns
+- Generate test sample payload
+
+### Example prompts
+
+```
+Generate a policy to block refunds above 5000 for non-admin users
+```
+
+```
+Create a governance policy that ensures all delete actions require approval
+```
+
+### Use the Claude Skill
+
+[Install Claude Skill](<YOUR_LINK>)
 
 ---
 
